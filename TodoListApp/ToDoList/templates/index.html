@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+
+{% block body %}
+
+<h1>To Do List</h1>
+<div class="itemAdd">
+    <form action="/updateList" method="post">
+        <input autocomplete="off" autofocus name="item" placeholder="Task Description" type="text">
+        <select name="priority">
+            <option disabled selected value>Select Priority</option>
+            {% for priority in priorities %}
+                <option value="{{ priority }}">{{ priority }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Add Item</button>
+    </form>
+</div>
+<br>
+
+
+{% endblock %}
