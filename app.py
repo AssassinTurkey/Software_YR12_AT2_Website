@@ -7,9 +7,7 @@ import torch
 tokenizer = AutoTokenizer.from_pretrained("microsoft/DialoGPT-medium")
 model = AutoModelForCausalLM.from_pretrained("microsoft/DialoGPT-medium")
 
-username = ''
-password = ''
-permLevel = 0
+userInfo = {}
 
 
 app = Flask(__name__)
@@ -79,12 +77,20 @@ def signup():
         conn = sqlite3.connect('users.db')
         c = conn.cursor()
         c.execute('''
-                    INSERT INTO users (username, password)
-                    VALUES (?, ?)
-                    ''', (username, password))
+                SELECT * from users where username = ?
+                ''', (username))
+        exists = c.fetchone()
+        if exists is not None:
+            return redirect(url_for('signup'))
+        else:
+            c.execute('''
+                        INSERT INTO users (username, password, permission_level)
+                        VALUES (?, ?)
+                       ''', (username, password, 0))
+            userInfo = c.execute('''SELECT * from users''').fetchall()
         conn.commit()
         conn.close()
-        return redirect(url_for('index')), username, password
+        return redirect(url_for('index'))
      else:
         return render_template('signup.html')
 
@@ -98,17 +104,22 @@ def get_Chat_respone(text):
     noOfMessages = 0
     new_user_input_ids = tokenizer.encode(str(text) + tokenizer.eos_token, return_tensors='pt')
 
-
-        # append the new user input tokens to the chat history
+    # append the new user input tokens to the chat history
     bot_input_ids = torch.cat([chat_history_ids, new_user_input_ids], dim=-1) if noOfMessages > 0 else new_user_input_ids
 
-
-        # generated a response while limiting the total chat history to 1000 tokens, 
+    # generated a response while limiting the total chat history to 1000 tokens, 
     chat_history_ids = model.generate(bot_input_ids, max_length=1000, pad_token_id=tokenizer.eos_token_id)
 
     noOfMessages += 1
 
-    # pretty print last ouput tokens from bot
+
+    conn = sqlite3.connect('chat_history.db')
+    c = conn.cursor()
+    c.execute('''
+                INSERT INTO chat_history (user_id, message, chatNumber, chatTitle)
+                VALUES (?, ?, ?, ?)
+                ''', (1, text, 1, 'General'))
+
     return tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)
     
 
