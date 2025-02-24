@@ -1,3 +1,5 @@
 venv/
 env/
-_pychache_/
+__pychache__/
+chat_history.db
+users.db
