@@ -216,6 +216,14 @@ border-radius: 0 0 15px 15px !important;
 	cursor: pointer;
 	background-color: rgba(0,0,0,0.2);
 }
+.action_button {
+	cursor: pointer;
+	border-radius: 15px;
+	width: 90%;
+	position: absolute;
+	color: rgba(255,255,255,0.5);
+	background-color: rgba(0,0,0,0.3);
+}
 @media(max-width: 576px){
 	.contacts_card{
 	margin-bottom: 15px !important;

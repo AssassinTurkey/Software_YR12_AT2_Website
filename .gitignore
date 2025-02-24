@@ -1,5 +1,6 @@
 venv/
 env/
-__pychache__/
+__pycache__/
 chat_history.db
 users.db
+XSS_Demo/
