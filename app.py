@@ -13,6 +13,7 @@ userInfo = {}
 app = Flask(__name__)
 
 
+#Initialise the user database and creates it if it does not exist
 def init_user_db():
     conn = sqlite3.connect('users.db')
     c = conn.cursor()
@@ -28,6 +29,7 @@ def init_user_db():
     conn.close()
 
 
+#Initialise the chat history database and creates it if it does not exist
 def init_chathistory_db():
     conn = sqlite3.connect('chat_history.db')
     c = conn.cursor()
@@ -63,8 +65,11 @@ def chat():
 
 
 
-@app.route('/login', methods=['GET'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
+     #if request.method == 'POST':
+         
+
      return render_template('login.html')
 
 
@@ -72,25 +77,49 @@ def login():
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
      if request.method == 'POST':
+
+        #Gets username and password from the form
         username = request.form.get('username')
         password = request.form.get('password')
-        conn = sqlite3.connect('users.db')
-        c = conn.cursor()
-        c.execute('''
-                SELECT * from users where username = ?
-                ''', (username))
-        exists = c.fetchone()
-        if exists is not None:
+
+        #Check if the username and password are empty
+        if username == '' or password == '':
             return redirect(url_for('signup'))
-        else:
+        
+        #Connect to the database
+        try:
+            conn = sqlite3.connect('users.db')
+            c = conn.cursor()
             c.execute('''
-                        INSERT INTO users (username, password, permission_level)
-                        VALUES (?, ?)
-                       ''', (username, password, 0))
-            userInfo = c.execute('''SELECT * from users''').fetchall()
-        conn.commit()
-        conn.close()
-        return redirect(url_for('index'))
+                    SELECT * from users where username = (?)
+                    ''', [username])
+        
+            #Check if the username already exists
+            exists = c.fetchone()
+
+            if exists is not None:
+                return redirect(url_for('signup'))
+            
+            #If the username does not exist, add the user to the database
+            else:
+                c.execute('''
+                            INSERT INTO users (username, password)
+                            VALUES (?, ?)
+                        ''', (username, password))
+                
+                userInfo = c.execute('''
+                                    SELECT * from users where username = (?)
+                                    ''', [username]).fetchall()
+        except:
+            return print('Database connection error')
+        
+        finally:
+
+            #Commit the changes and close the connection
+            conn.commit()
+            conn.close()
+
+            return redirect(url_for('index'))
      else:
         return render_template('signup.html')
 
@@ -112,13 +141,15 @@ def get_Chat_respone(text):
 
     noOfMessages += 1
 
+    print(userInfo)
 
-    conn = sqlite3.connect('chat_history.db')
-    c = conn.cursor()
-    c.execute('''
-                INSERT INTO chat_history (user_id, message, chatNumber, chatTitle)
-                VALUES (?, ?, ?, ?)
-                ''', (1, text, 1, 'General'))
+
+    #conn = sqlite3.connect('chat_history.db')
+    #c = conn.cursor()
+    #c.execute('''
+    #            INSERT INTO chat_history (user_id, message, chatNumber, chatTitle)
+    #            VALUES (?, ?, ?, ?)
+    #            ''', (1, text, 1, 'General'))
 
     return tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)
     

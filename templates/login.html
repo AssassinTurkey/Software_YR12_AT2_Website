@@ -13,6 +13,36 @@
 		<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css')}}"/>
 	</head>
 
+	<body>
+		<div class="container-fluid h-100">
+			<div class="row justify-content-center h-100">		
+				<div class="col-md-8 col-xl-6 chat">
+					<div class="card">
+						<div class="card-header msg_head">
+							<div class="d-flex bd-highlight">
+								<div class="img_cont">
+									<img src="https://i.ibb.co/fSNP7Rz/icons8-chatgpt-512.png" class="rounded-circle user_img">
+								</div>
+								<div class="user_info">
+									<span>Sign In to your Account</span>
+								</div>
+							</div>
+							<div class="card-footer">
+								<form id="messageArea" method="POST">
+									<input type="text" id="text" name="username" placeholder="Enter Username" autocomplete="off" class="form-control type_msg" required/>
+									<br>
+									<input type="text" id="text" name="password" placeholder="Enter Password" autocomplete="off" class="form-control type_msg" required/>
+									<br>
+									<button type="submit" class="action_button">Log In</button>
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+
 
 
 </html>
