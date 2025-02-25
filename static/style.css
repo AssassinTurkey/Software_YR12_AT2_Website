@@ -189,6 +189,13 @@ border-radius: 0 0 15px 15px !important;
 	font-size: 20px;
 }
 .action_menu{
+	animation: fadeIn 0.5s;
+}
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+.action_menu_block{
 	z-index: 1;
 	position: absolute;
 	padding: 15px 0;

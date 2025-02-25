@@ -67,9 +67,24 @@ def chat():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-     #if request.method == 'POST':
+     if request.method == 'POST':
          
+         username = request.form.get('username')
+         password = request.form.get('password')
 
+         if username == '' or password == '':
+            return redirect(url_for('login'))
+         
+         else:
+             conn = sqlite3.connect('users.db')
+             c = conn.cursor()
+             userInfo = c.execute('''
+                        SELECT * from users where username = (?) and password = (?)
+                        ''', [username, password]).fetchall()
+             conn.commit()
+             conn.close()
+             return redirect(url_for('index'))
+         
      return render_template('login.html')
 
 
@@ -85,41 +100,38 @@ def signup():
         #Check if the username and password are empty
         if username == '' or password == '':
             return redirect(url_for('signup'))
-        
-        #Connect to the database
-        try:
-            conn = sqlite3.connect('users.db')
-            c = conn.cursor()
-            c.execute('''
-                    SELECT * from users where username = (?)
-                    ''', [username])
-        
-            #Check if the username already exists
-            exists = c.fetchone()
-
-            if exists is not None:
-                return redirect(url_for('signup'))
-            
-            #If the username does not exist, add the user to the database
-            else:
+        else:
+            #Connect to the database
+            try:
+                conn = sqlite3.connect('users.db')
+                c = conn.cursor()
                 c.execute('''
-                            INSERT INTO users (username, password)
-                            VALUES (?, ?)
-                        ''', (username, password))
+                        SELECT * from users where username = (?)
+                        ''', [username])
+            
+                #Check if the username already exists
+                exists = c.fetchone()
+
+                if exists is not None:
+                    return redirect(url_for('signup'))
                 
-                userInfo = c.execute('''
-                                    SELECT * from users where username = (?)
-                                    ''', [username]).fetchall()
-        except:
-            return print('Database connection error')
-        
-        finally:
-
-            #Commit the changes and close the connection
-            conn.commit()
-            conn.close()
-
-            return redirect(url_for('index'))
+                #If the username does not exist, add the user to the database
+                else:
+                    c.execute('''
+                                INSERT INTO users (username, password)
+                                VALUES (?, ?)
+                            ''', (username, password))
+                    
+                    userInfo = c.execute('''
+                                        SELECT * from users where username = (?)
+                                        ''', [username]).fetchall()
+                    #Commit the changes and close the connection
+                    return redirect(url_for('index'))
+            except:
+                return print('Database connection error')
+            finally:
+                conn.commit()
+                conn.close()
      else:
         return render_template('signup.html')
 

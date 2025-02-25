@@ -1,6 +1,7 @@
 <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
 <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://kit.fontawesome.com/cf3e2ae5a1.js" crossorigin="anonymous"></script>
 
 <!DOCTYPE html>
 <html>
@@ -14,6 +15,19 @@
 	
 	
 	<body>
+		<div class="action_menu_button" id="openPopup">
+			<p>Open Menu</p>
+		</div>
+		<div class="action_menu" id="popup">
+			<div class="action_menu_block">
+				<div class="action__menu_button">
+					<a href="/login"><i class="fa-solid fa-user"></i>Log In</a>
+				</div>
+				<div class="action__menu_button">
+					<a href="/signup"><i class="fa-solid fa-right-to-bracket"></i></i>Sign Up</a>
+				</div>
+			</div>
+		</div>
 		<div class="container-fluid h-100">
 			<div class="row justify-content-center h-100">		
 				<div class="col-md-8 col-xl-6 chat">
@@ -47,6 +61,16 @@
 			</div>
         </div>
         <script>
+			document.getElementById("popup").style.display = "none";
+			document.getElementById("openPopup").onclick = function() {
+				document.getElementById("popup").style.display = "all";
+			}
+			window.onclick = function(event) {
+    			if (event.target == document.getElementById("popup")) {
+        		document.getElementById("popup").style.display = "none";
+    			}
+			};
+
             function scrollToBottom() {
 			var messageBody = document.getElementById("messageFormeight");
 			messageBody.scrollTop = messageBody.scrollHeight;
