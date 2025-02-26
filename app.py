@@ -1,16 +1,45 @@
 import sqlite3
 from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
+from markupsafe import escape
+import uuid
+from datetime import timedelta
 
 #Setting up the model, tokeniser, global variables and Flask app
 tokenizer = AutoTokenizer.from_pretrained("microsoft/DialoGPT-medium")
 model = AutoModelForCausalLM.from_pretrained("microsoft/DialoGPT-medium")
 
-userInfo = {}
+userInfo = dict()
+userInfo['Session'] = False
+print(userInfo)
+
+chatInfo = dict()
 
 
 app = Flask(__name__)
+
+app.config.update(
+    SESSION_COOKIE_SECURE=True,  # Enforces HTTPS for session cookies
+    SESSION_COOKIE_HTTPONLY=True,  # Prevents client-side JS from accessing session cookies
+    SESSION_COOKIE_SAMESITE='Strict'  # Prevents cross-site request forgery (CSRF)
+)
+
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=15)
+
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
+
+@app.before_request
+def enforce_https():
+    if not request.is_secure:
+        return redirect(request.url.replace('http://', 'https://'))
+
+limiter = Limiter(get_remote_address, app=app, default_limits=["5 per minute"])
+
 
 
 #Initialise the user database and creates it if it does not exist
@@ -66,6 +95,7 @@ def chat():
 
 
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def login():
      if request.method == 'POST':
          
@@ -77,10 +107,22 @@ def login():
          
          else:
              conn = sqlite3.connect('users.db')
+             conn.row_factory = sqlite3.Row
              c = conn.cursor()
-             userInfo = c.execute('''
-                        SELECT * from users where username = (?) and password = (?)
-                        ''', [username, password]).fetchall()
+             c.execute('''
+                    SELECT * from users where username = (?) and password = (?)
+                    ''', [username, password])
+             userInfo = [dict(row) for row in c.fetchall()]
+             print(userInfo)
+             userInfo['Session'] = True
+             conn.commit()
+             conn.close()
+
+             conn = sqlite3.connect('chat_history.db')
+             c = conn.cursor()
+             chatInfo = c.execute('''
+                        SELECT * from chat_history where user_id = (?)
+                        ''', [userInfo['user_id']]).fetchall()
              conn.commit()
              conn.close()
              return redirect(url_for('index'))
@@ -90,6 +132,7 @@ def login():
 
 
 @app.route('/signup', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def signup():
      if request.method == 'POST':
 
@@ -125,13 +168,20 @@ def signup():
                     userInfo = c.execute('''
                                         SELECT * from users where username = (?)
                                         ''', [username]).fetchall()
-                    #Commit the changes and close the connection
+                    userInfo['Session'] = True
+                    conn.commit()
+                    conn.close()
+
+                    conn = sqlite3.connect('chat_history.db')
+                    c = conn.cursor()
+                    chatInfo = c.execute('''
+                                SELECT * from chat_history where user_id = (?)
+                                ''', [userInfo['user_id']]).fetchall()
+                    conn.commit()
+                    conn.close()
                     return redirect(url_for('index'))
             except:
                 return print('Database connection error')
-            finally:
-                conn.commit()
-                conn.close()
      else:
         return render_template('signup.html')
 
@@ -143,6 +193,8 @@ def signup():
 def get_Chat_respone(text):
     # encode the new user input, add the eos_token and return a tensor in Pytorch
     noOfMessages = 0
+    chatTitle = 'General'
+
     new_user_input_ids = tokenizer.encode(str(text) + tokenizer.eos_token, return_tensors='pt')
 
     # append the new user input tokens to the chat history
@@ -154,14 +206,18 @@ def get_Chat_respone(text):
     noOfMessages += 1
 
     print(userInfo)
+    print(chatInfo)
 
-
-    #conn = sqlite3.connect('chat_history.db')
-    #c = conn.cursor()
-    #c.execute('''
-    #            INSERT INTO chat_history (user_id, message, chatNumber, chatTitle)
-    #            VALUES (?, ?, ?, ?)
-    #            ''', (1, text, 1, 'General'))
+    
+    #if userInfo['Session'] == True:
+    #    conn = sqlite3.connect('chat_history.db')
+    #    c = conn.cursor()
+    #    c.execute('''
+    #                INSERT INTO chat_history (user_id, message, chatNumber, chatTitle)
+    #                VALUES (?, ?, ?, ?)
+    #                ''', (userInfo['user_id'], text, 1, chatTitle))
+    #    conn.commit()
+    #    conn.close()
 
     return tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)
     

@@ -15,17 +15,13 @@
 	
 	
 	<body>
-		<div class="action_menu_button" id="openPopup">
-			<p>Open Menu</p>
-		</div>
-		<div class="action_menu" id="popup">
-			<div class="action_menu_block">
-				<div class="action__menu_button">
-					<a href="/login"><i class="fa-solid fa-user"></i>Log In</a>
-				</div>
-				<div class="action__menu_button">
-					<a href="/signup"><i class="fa-solid fa-right-to-bracket"></i></i>Sign Up</a>
-				</div>
+		<div class="action_menu" id="menu">
+			<button class="action_menu_btn" id="openPopup"><i class="fa-solid fa-list"></i></button>
+			<div class="action_menu_content" id="popup">
+				<ul>
+					<li><a href="/login"><i class="fa-solid fa-user"></i> Log In</a></li>
+					<li><a href="/signup"><i class="fa-solid fa-right-to-bracket"></i> Sign Up</a></li>
+				</ul>
 			</div>
 		</div>
 		<div class="container-fluid h-100">
@@ -60,16 +56,16 @@
 				</div>
 			</div>
         </div>
+		
         <script>
 			document.getElementById("popup").style.display = "none";
 			document.getElementById("openPopup").onclick = function() {
-				document.getElementById("popup").style.display = "all";
+				if (document.getElementById("popup").style.display == "block") {
+					document.getElementById("popup").style.display = "none";
+				} else {
+					document.getElementById("popup").style.display = "block";
+				}
 			}
-			window.onclick = function(event) {
-    			if (event.target == document.getElementById("popup")) {
-        		document.getElementById("popup").style.display = "none";
-    			}
-			};
 
             function scrollToBottom() {
 			var messageBody = document.getElementById("messageFormeight");

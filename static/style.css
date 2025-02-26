@@ -180,32 +180,55 @@ border-radius: 0 0 15px 15px !important;
 .msg_head{
 	position: relative;
 }
-#action_menu_btn{
+.action_menu_btn{
 	position: absolute;
 	right: 10px;
 	top: 10px;
-	color: white;
+	width: 0px;
+	padding-bottom: 5px;
+	color: rgba(255,255,255,0.5);
+	background-color: transparent;
+	border: none;
+	outline: none;
 	cursor: pointer;
-	font-size: 20px;
+	font-size: 25px;
+}
+.action_menu_btn:focus {
+	border: none;
+	outline: none;
 }
 .action_menu{
-	animation: fadeIn 0.5s;
+	/*animation: fadeIn 0.5s;*/
+	margin-left: 99%;
+	position: relative;
+	display: inline-block;
 }
-@keyframes fadeIn {
+/*@keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
-}
-.action_menu_block{
-	z-index: 1;
+}*/
+.action_menu_content{
+	display: none;
 	position: absolute;
-	padding: 15px 0;
+	z-index: 1;
+	padding: 15px 15px;
 	background-color: rgba(0,0,0,0.5);
 	color: white;
 	border-radius: 15px;
-	top: 30px;
-	right: 15px;
-	display: none;
+	top: 40px;
+	right: -5px;
 }
+.action_menu a{
+	color: white;
+  	text-decoration: none;
+  	display: block;
+}
+.action_menu a:hover{
+	background-color: rgba(0,0,0,0.2);
+}
+/*.action_menu:hover .action_menu_content{
+	display: block;
+}*/
 .action_menu ul{
 	list-style: none;
 	padding: 0;
@@ -230,6 +253,13 @@ border-radius: 0 0 15px 15px !important;
 	position: absolute;
 	color: rgba(255,255,255,0.5);
 	background-color: rgba(0,0,0,0.3);
+}
+.sidebar {
+	position: fixed;
+	height: 100%;
+	width: 100%;
+	background: #344195;
+	transition: all 0.3s;
 }
 @media(max-width: 576px){
 	.contacts_card{
