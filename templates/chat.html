@@ -15,6 +15,12 @@
 	
 	
 	<body>
+		<div class="sidebar" id="sideBar" name="sideBar">
+			<div name='newChat'class="sidebar_button" onclick="createNewDom()" id="sidebar_button">
+				<p><i class="fa-solid fa-comments"></i> New Chat</p>
+			</div>
+			<div id="chatPlacement"></div>
+		</div>
 		<div class="action_menu" id="menu">
 			<button class="action_menu_btn" id="openPopup"><i class="fa-solid fa-list"></i></button>
 			<div class="action_menu_content" id="popup">
@@ -71,6 +77,12 @@
 			var messageBody = document.getElementById("messageFormeight");
 			messageBody.scrollTop = messageBody.scrollHeight;
 		}
+			function createNewDom() {
+				var DOMHeadingOne = document.createElement("button");
+				DOMHeadingOne.innerHTML = 'Chat 1';
+				DOMHeadingOne.classList.add("newChat");
+				document.getElementById("chatPlacement").appendChild(DOMHeadingOne);
+			}
 
 			$(document).ready(function () {
 				$("#messageArea").on("submit", function (event) {

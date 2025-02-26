@@ -34,11 +34,10 @@ def enforce_https():
     
 def make_session_permanent():
     session.permanent = True
-    session['Session'] = False
 
 
-limiter = Limiter(get_remote_address, app=app, default_limits=["5 per minute"])
 
+limiter = Limiter(get_remote_address, app=app, default_limits=["20 per minute"])
 
 #Initialise the user database and creates it if it does not exist
 def init_user_db():
@@ -64,7 +63,7 @@ def init_chathistory_db():
               CREATE TABLE IF NOT EXISTS chat_history (
               chat_id INTEGER PRIMARY KEY AUTOINCREMENT,
               user_id INTEGER NOT NULL,
-              chatNumber INTEGER NOT NULL AUTOINCREMENT,
+              chatNumber INTEGER NOT NULL,
               chatTitle TEXT NOT NULL,
               FOREIGN KEY (user_id) REFERENCES users(user_id)
               )
@@ -94,6 +93,7 @@ init_chatdata_db()
 
 @app.route('/')
 def index():
+    session['Session'] = False
     return render_template('chat.html')
 
 
@@ -218,19 +218,19 @@ def get_Chat_respone(text):
 
     noOfMessages += 1
 
-    
-    if session['Session'] == True:
-        conn = sqlite3.connect('chat_history.db')
-        c = conn.cursor()
-        if c.execute('''SELECT * from chat_history where user_id = (?)''',[session['user_id']]).fetchone() is not None:
-            
-        else:
+    #if session['Session'] == True:
+    #    conn = sqlite3.connect('chat_history.db')
+    #    c = conn.cursor()
+    #    if c.execute('''SELECT * from chat_history where user_id = (?)''',[session['user_id']]).fetchone() is not None:
+    #        #Close connection to chat history database
+    #        conn.commit()
+    #        conn.close()
             
 
 
     return tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)
 
-def create_new_chat(title='General', user_id):
+def create_new_chat(user_id, title='General'):
     conn = sqlite3.connect('chat_history.db')
     c = conn.cursor()
     c.execute('''
@@ -240,15 +240,17 @@ def create_new_chat(title='General', user_id):
     conn.commit()
     conn.close()
 
-def add_chat_data(chat_id, msg, date):
+def add_chat_data(chat_id, msg):
     conn = sqlite3.connect('chat_data.db')
     c = conn.cursor()
     c.execute('''
-                INSERT INTO chat_data (chat_id, text, )
-              ''')
+                INSERT INTO chat_data (chat_id, text)
+                VALUES (?, ?)
+              ''', (chat_id, msg))
+    conn.commit()
+    conn.close()
 
     
 
 if __name__ == '__main__':
     app.run(debug=True, ssl_context=("cert.pem", "key.pem"), host="0.0.0.0", port=443)
-    #get_Chat_respone()

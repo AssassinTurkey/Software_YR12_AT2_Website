@@ -226,9 +226,6 @@ border-radius: 0 0 15px 15px !important;
 .action_menu a:hover{
 	background-color: rgba(0,0,0,0.2);
 }
-/*.action_menu:hover .action_menu_content{
-	display: block;
-}*/
 .action_menu ul{
 	list-style: none;
 	padding: 0;
@@ -257,9 +254,43 @@ border-radius: 0 0 15px 15px !important;
 .sidebar {
 	position: fixed;
 	height: 100%;
-	width: 100%;
-	background: #344195;
+	width: 10%;
+	background: rgba(0,0,0,0.3);
+	border-radius: 15px;
+	margin-left:-15px;
 	transition: all 0.3s;
+}
+.sidebar_button {
+	position: absolute;
+	width: 100%;
+	height: 50px;
+	background: transparent;
+	border-radius: 15px;
+	color: white;
+	font-size: 20px;
+	cursor: pointer;
+}
+.sidebar_button:hover {
+	background: rgba(0,0,0,0.5);
+}
+.sidebar p {
+	color: white;
+	font-size: 15px;
+	text-align: center;
+	margin-top: 7%;
+}
+.sidebar button {
+	width: 100%;
+	height: 50px;
+	background: transparent;
+	border-radius: 15px;
+	color: white;
+	font-size: 15px;
+	cursor: pointer;
+	border: none;
+}
+#chatPlacement {
+	margin-top: 25%;
 }
 @media(max-width: 576px){
 	.contacts_card{
