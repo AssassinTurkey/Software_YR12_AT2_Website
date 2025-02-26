@@ -1,5 +1,5 @@
 import sqlite3
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -12,14 +12,11 @@ from datetime import timedelta
 tokenizer = AutoTokenizer.from_pretrained("microsoft/DialoGPT-medium")
 model = AutoModelForCausalLM.from_pretrained("microsoft/DialoGPT-medium")
 
-userInfo = dict()
-userInfo['Session'] = False
-print(userInfo)
-
-chatInfo = dict()
+chatSession = [{}]
 
 
 app = Flask(__name__)
+app.secret_key = 'HelloThereGeneralKenobi'
 
 app.config.update(
     SESSION_COOKIE_SECURE=True,  # Enforces HTTPS for session cookies
@@ -29,17 +26,18 @@ app.config.update(
 
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=15)
 
-@app.before_request
-def make_session_permanent():
-    session.permanent = True
 
 @app.before_request
 def enforce_https():
     if not request.is_secure:
         return redirect(request.url.replace('http://', 'https://'))
+    
+def make_session_permanent():
+    session.permanent = True
+    session['Session'] = False
+
 
 limiter = Limiter(get_remote_address, app=app, default_limits=["5 per minute"])
-
 
 
 #Initialise the user database and creates it if it does not exist
@@ -48,7 +46,7 @@ def init_user_db():
     c = conn.cursor()
     c.execute('''
                 CREATE TABLE IF NOT EXISTS users (
-                user_id INTEGER AUTO_INCREMENT PRIMARY KEY,
+                user_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT NOT NULL,
                 password TEXT NOT NULL,
                 permission_level INTEGER DEFAULT 0 NOT NULL
@@ -64,13 +62,25 @@ def init_chathistory_db():
     c = conn.cursor()
     c.execute('''
               CREATE TABLE IF NOT EXISTS chat_history (
-              chat_id INTEGER AUTO_INCREMENT PRIMARY KEY,
+              chat_id INTEGER PRIMARY KEY AUTOINCREMENT,
               user_id INTEGER NOT NULL,
-              message TEXT NOT NULL,
-              chatNumber INTEGER NOT NULL,
+              chatNumber INTEGER NOT NULL AUTOINCREMENT,
               chatTitle TEXT NOT NULL,
-              messageTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
               FOREIGN KEY (user_id) REFERENCES users(user_id)
+              )
+              ''')
+    conn.commit()
+    conn.close()
+
+def init_chatdata_db():
+    conn = sqlite3.connect('chat_data.db')
+    c = conn.cursor()
+    c.execute('''
+              CREATE TABLE IF NOT EXISTS chat_data (
+              chat_id INTEGER,
+              message TEXT NOT NULL,
+              messageTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+              FOREIGN KEY (chat_id) REFERENCES chat_history(chat_id)
               )
               ''')
     conn.commit()
@@ -79,6 +89,7 @@ def init_chathistory_db():
 
 init_user_db()
 init_chathistory_db()
+init_chatdata_db()
 
 
 @app.route('/')
@@ -89,7 +100,7 @@ def index():
 @app.route('/get', methods=['GET', 'POST'])
 def chat():
     msg = request.form['msg']
-    input = msg
+    input = escape(msg)
     return get_Chat_respone(input)
 
 
@@ -99,8 +110,8 @@ def chat():
 def login():
      if request.method == 'POST':
          
-         username = request.form.get('username')
-         password = request.form.get('password')
+         username = escape(request.form.get('username'))
+         password = escape(request.form.get('password'))
 
          if username == '' or password == '':
             return redirect(url_for('login'))
@@ -112,9 +123,14 @@ def login():
              c.execute('''
                     SELECT * from users where username = (?) and password = (?)
                     ''', [username, password])
-             userInfo = [dict(row) for row in c.fetchall()]
-             print(userInfo)
-             userInfo['Session'] = True
+             userInfo = c.fetchone()
+
+             session.clear()
+             session['user_id'] = userInfo[0][0]
+             session['username'] = userInfo[0][1]
+             session['csrf_token'] = str(uuid.uuid4())
+             session['Session'] = True
+                      
              conn.commit()
              conn.close()
 
@@ -122,7 +138,7 @@ def login():
              c = conn.cursor()
              chatInfo = c.execute('''
                         SELECT * from chat_history where user_id = (?)
-                        ''', [userInfo['user_id']]).fetchall()
+                        ''', [session['user_id']]).fetchall()
              conn.commit()
              conn.close()
              return redirect(url_for('index'))
@@ -137,9 +153,9 @@ def signup():
      if request.method == 'POST':
 
         #Gets username and password from the form
-        username = request.form.get('username')
-        password = request.form.get('password')
-
+        username = escape(request.form.get('username'))
+        password = escape(request.form.get('password'))
+        
         #Check if the username and password are empty
         if username == '' or password == '':
             return redirect(url_for('signup'))
@@ -151,7 +167,7 @@ def signup():
                 c.execute('''
                         SELECT * from users where username = (?)
                         ''', [username])
-            
+                
                 #Check if the username already exists
                 exists = c.fetchone()
 
@@ -160,23 +176,21 @@ def signup():
                 
                 #If the username does not exist, add the user to the database
                 else:
-                    c.execute('''
-                                INSERT INTO users (username, password)
+                    c.execute('''INSERT INTO users (username, password)
                                 VALUES (?, ?)
                             ''', (username, password))
+                    
                     
                     userInfo = c.execute('''
                                         SELECT * from users where username = (?)
                                         ''', [username]).fetchall()
-                    userInfo['Session'] = True
-                    conn.commit()
-                    conn.close()
+                    
+                    session.clear()
+                    session['user_id'] = userInfo[0][0]
+                    session['username'] = userInfo[0][1]
+                    session['csrf_token'] = str(uuid.uuid4())
+                    session['Session'] = True
 
-                    conn = sqlite3.connect('chat_history.db')
-                    c = conn.cursor()
-                    chatInfo = c.execute('''
-                                SELECT * from chat_history where user_id = (?)
-                                ''', [userInfo['user_id']]).fetchall()
                     conn.commit()
                     conn.close()
                     return redirect(url_for('index'))
@@ -193,7 +207,6 @@ def signup():
 def get_Chat_respone(text):
     # encode the new user input, add the eos_token and return a tensor in Pytorch
     noOfMessages = 0
-    chatTitle = 'General'
 
     new_user_input_ids = tokenizer.encode(str(text) + tokenizer.eos_token, return_tensors='pt')
 
@@ -205,23 +218,37 @@ def get_Chat_respone(text):
 
     noOfMessages += 1
 
-    print(userInfo)
-    print(chatInfo)
-
     
-    #if userInfo['Session'] == True:
-    #    conn = sqlite3.connect('chat_history.db')
-    #    c = conn.cursor()
-    #    c.execute('''
-    #                INSERT INTO chat_history (user_id, message, chatNumber, chatTitle)
-    #                VALUES (?, ?, ?, ?)
-    #                ''', (userInfo['user_id'], text, 1, chatTitle))
-    #    conn.commit()
-    #    conn.close()
+    if session['Session'] == True:
+        conn = sqlite3.connect('chat_history.db')
+        c = conn.cursor()
+        if c.execute('''SELECT * from chat_history where user_id = (?)''',[session['user_id']]).fetchone() is not None:
+            
+        else:
+            
+
 
     return tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)
+
+def create_new_chat(title='General', user_id):
+    conn = sqlite3.connect('chat_history.db')
+    c = conn.cursor()
+    c.execute('''
+                INSERT INTO chat_history (user_id, chatTitle)
+                VALUES (?, ?)
+              ''',(user_id, title))
+    conn.commit()
+    conn.close()
+
+def add_chat_data(chat_id, msg, date):
+    conn = sqlite3.connect('chat_data.db')
+    c = conn.cursor()
+    c.execute('''
+                INSERT INTO chat_data (chat_id, text, )
+              ''')
+
     
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, ssl_context=("cert.pem", "key.pem"), host="0.0.0.0", port=443)
     #get_Chat_respone()
