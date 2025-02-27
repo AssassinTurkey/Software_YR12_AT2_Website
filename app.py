@@ -7,6 +7,7 @@ import torch
 from markupsafe import escape
 import uuid
 from datetime import timedelta
+import ollama
 
 #Setting up the model, tokeniser, global variables and Flask app
 tokenizer = AutoTokenizer.from_pretrained("microsoft/DialoGPT-medium")
@@ -101,7 +102,7 @@ def index():
 def chat():
     msg = request.form['msg']
     input = escape(msg)
-    return get_Chat_respone(input)
+    return generate_response(input)
 
 
 
@@ -229,6 +230,11 @@ def get_Chat_respone(text):
 
 
     return tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)
+
+def generate_response(prompt):
+    model = "llama3.1"  # Ensure this is the correct model name available in your Ollama setup
+    response = ollama.chat(model=model, messages=[{"role": "user", "content": prompt}])
+    return response["message"]["content"]
 
 def create_new_chat(user_id, title='General'):
     conn = sqlite3.connect('chat_history.db')
