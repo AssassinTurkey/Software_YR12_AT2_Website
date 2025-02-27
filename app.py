@@ -2,6 +2,7 @@ import sqlite3
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_cors import CORS
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 from markupsafe import escape
@@ -9,14 +10,10 @@ import uuid
 from datetime import timedelta
 import ollama
 
-#Setting up the model, tokeniser, global variables and Flask app
-tokenizer = AutoTokenizer.from_pretrained("microsoft/DialoGPT-medium")
-model = AutoModelForCausalLM.from_pretrained("microsoft/DialoGPT-medium")
-
-chatSession = [{}]
 
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for frontend communication
 app.secret_key = 'HelloThereGeneralKenobi'
 
 app.config.update(
@@ -79,6 +76,7 @@ def init_chatdata_db():
               CREATE TABLE IF NOT EXISTS chat_data (
               chat_id INTEGER,
               message TEXT NOT NULL,
+              role TEXT NOT NULL,
               messageTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
               FOREIGN KEY (chat_id) REFERENCES chat_history(chat_id)
               )
@@ -98,11 +96,11 @@ def index():
     return render_template('chat.html')
 
 
-@app.route('/get', methods=['GET', 'POST'])
+'''@app.route('/get', methods=['GET', 'POST'])
 def chat():
     msg = request.form['msg']
     input = escape(msg)
-    return generate_response(input)
+    return generate_response(input)'''
 
 
 
@@ -199,42 +197,38 @@ def signup():
                 return print('Database connection error')
      else:
         return render_template('signup.html')
+     
+# Fetch chat history endpoint
+@app.route("/history", methods=["GET"])
+def history():
+    return jsonify(load_chat_history())
 
+# Chat endpoint
+@app.route("/chat", methods=["POST"])
+def chat():
+    data = request.json
+    user_input = data.get("message", "")
 
+    if not user_input:
+        return jsonify({"error": "Message cannot be empty"}), 400
 
+    model = "llama3.1"  # Replace with your preferred model
+    chat_history = load_chat_history()
+    
+    # Append user message to database
+    save_chat_message(1, user_input, 'user')
+    chat_history.append({"role": "user", "content": user_input})
+    
+    # Generate chatbot response
+    response = ollama.chat(model=model, messages=chat_history)
+    bot_message = response["message"]["content"]
+    
+    # Append bot message to database
+    save_chat_message(1, bot_message, 'assistant')
+    chat_history.append({"role": "assistant", "content": bot_message})
+    
+    return jsonify({"response": bot_message})
 
-
-
-def get_Chat_respone(text):
-    # encode the new user input, add the eos_token and return a tensor in Pytorch
-    noOfMessages = 0
-
-    new_user_input_ids = tokenizer.encode(str(text) + tokenizer.eos_token, return_tensors='pt')
-
-    # append the new user input tokens to the chat history
-    bot_input_ids = torch.cat([chat_history_ids, new_user_input_ids], dim=-1) if noOfMessages > 0 else new_user_input_ids
-
-    # generated a response while limiting the total chat history to 1000 tokens, 
-    chat_history_ids = model.generate(bot_input_ids, max_length=1000, pad_token_id=tokenizer.eos_token_id)
-
-    noOfMessages += 1
-
-    #if session['Session'] == True:
-    #    conn = sqlite3.connect('chat_history.db')
-    #    c = conn.cursor()
-    #    if c.execute('''SELECT * from chat_history where user_id = (?)''',[session['user_id']]).fetchone() is not None:
-    #        #Close connection to chat history database
-    #        conn.commit()
-    #        conn.close()
-            
-
-
-    return tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)
-
-def generate_response(prompt):
-    model = "llama3.1"  # Ensure this is the correct model name available in your Ollama setup
-    response = ollama.chat(model=model, messages=[{"role": "user", "content": prompt}])
-    return response["message"]["content"]
 
 def create_new_chat(user_id, title='General'):
     conn = sqlite3.connect('chat_history.db')
@@ -246,15 +240,25 @@ def create_new_chat(user_id, title='General'):
     conn.commit()
     conn.close()
 
-def add_chat_data(chat_id, msg):
+def save_chat_message(chat_id, msg, role):
     conn = sqlite3.connect('chat_data.db')
     c = conn.cursor()
     c.execute('''
-                INSERT INTO chat_data (chat_id, text)
-                VALUES (?, ?)
-              ''', (chat_id, msg))
+                INSERT INTO chat_data (chat_id, message, role)
+                VALUES (?, ?, ?)
+              ''', (chat_id, msg, role))
     conn.commit()
     conn.close()
+
+def load_chat_history():
+    conn = sqlite3.connect('chat_data.db')
+    c = conn.cursor()
+    c.execute("SELECT message, role FROM chat_data")
+    chat_history = [{"role": row[1], "content": row[0]} for row in c.fetchall()]
+    print(chat_history)
+    conn.commit()
+    conn.close()
+    return chat_history
 
     
 
