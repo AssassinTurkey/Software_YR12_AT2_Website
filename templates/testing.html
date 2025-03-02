@@ -19,7 +19,9 @@
 			<div name='newChat'class="sidebar_button" onclick="createNewDom()" id="sidebar_button">
 				<p><i class="fa-solid fa-comments"></i> New Chat</p>
 			</div>
-			<div id="chatPlacement"></div>
+			<div id="chatPlacement">
+                <div id="chat-list"></div>
+            </div>
 		</div>
 		<div class="action_menu" id="menu">
 			<button class="action_menu_btn" id="openPopup"><i class="fa-solid fa-list"></i></button>
@@ -46,9 +48,7 @@
 								</div>
 							</div>
 						</div>
-						<div id="messageFormeight" class="card-body msg_card_body">
-							
-							
+						<div id="messageFormeight" class="card-body msg_card_body">	
 						</div>
 						<div class="card-footer">
 							<form id="messageArea" class="input-group">
@@ -73,16 +73,94 @@
 				}
 			}
 
+            document.addEventListener("DOMContentLoaded", function () {
+                const chatList = document.getElementById("chat-list"); // Sidebar chat container
+                const chatWindow = document.getElementById("card-body msg_card_body"); // Chat display area
+                const newChatBtn = document.getElementById("sidebar_button"); // "New Chat" button
+
+                if (!chatList || !newChatBtn) {
+                    console.error("Missing elements: check IDs");
+                    return;
+                }
+
+                // Function to add a new chat to the sidebar
+                function addChatToSidebar(chatId, chatTitle) {
+                    console.log(`Adding chat ${chatId} to sidebar`); // Debugging
+                    if (document.querySelector(`[data-chat-id="${chatId}"]`)) {
+                        console.warn("Chat already exists in sidebar");
+                        return;
+                    }
+
+                    const newChatButton = document.createElement("button");
+                    newChatButton.classList.add("sidebar_chat_button");
+                    newChatButton.dataset.chatId = chatId;
+                    newChatButton.textContent = chatTitle;
+
+                    chatList.appendChild(newChatButton);
+                }
+
+                // Handle new chat creation
+                newChatBtn.addEventListener("click", function () {
+                    fetch("/new_chat", { method: "POST" })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.chat_id) {
+                                addChatToSidebar(data.chat_id, data.chat_title);
+                                console.log(`New chat created with ID: ${data.chat_id}`);
+                            } else {
+                                console.error("Failed to create new chat");
+                            }
+                        })
+                        .catch(error => console.error("Error creating chat:", error));
+                });
+
+                // Load chat when clicking a sidebar button
+                chatList.addEventListener("click", function (event) {
+                    if (event.target.classList.contains("sidebar__chat_button")) {
+                        const chatId = event.target.dataset.chatId;
+                        console.log(`Loading chat ID: ${chatId}`);
+                        loadChat(chatId);
+                    }
+                });
+            function loadChatList() {
+                fetch('/get_chats')
+                    .then(response => response.json())
+                    .then(chats => {
+                        let chatListDiv = document.getElementById("chat-list");
+                        chatListDiv.innerHTML = "";
+
+                        chats.forEach(chat => {
+                            let chatButton = document.createElement("button");
+                            chatButton.innerText = chat.title;
+                            chatButton.onclick = function () {
+                                loadChat(chat.chat_id);
+                            };
+                            chatListDiv.appendChild(chatButton);
+                        });
+                    });
+            }
+
+                // Function to load chat messages
+                function loadChat(chatId) {
+                    fetch(`/load_chat?chat_id=${chatId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            chatWindow.innerHTML = ""; // Clear previous messages
+                            data.messages.forEach(msg => {
+                                const messageDiv = document.createElement("div");
+                                messageDiv.classList.add(msg.role === "user" ? "user-message" : "bot-message");
+                                messageDiv.textContent = msg.content;
+                                chatWindow.appendChild(messageDiv);
+                            });
+                        })
+                        .catch(error => console.error("Error loading chat:", error));
+                }
+            });
+
             function scrollToBottom() {
 			var messageBody = document.getElementById("messageFormeight");
 			messageBody.scrollTop = messageBody.scrollHeight;
 		}
-			function createNewDom() {
-				var DOMHeadingOne = document.createElement("button");
-				DOMHeadingOne.innerHTML = 'Chat 1';
-				DOMHeadingOne.classList.add("newChat");
-				document.getElementById("chatPlacement").appendChild(DOMHeadingOne);
-			}
 
 			$(document).ready(function () {
                 loadChatHistory();
