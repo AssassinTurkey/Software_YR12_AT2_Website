@@ -48,7 +48,7 @@
 								</div>
 							</div>
 						</div>
-						<div id="messageFormeight" class="card-body msg_card_body">	
+						<div id="messageFormeight" class="card-body msg_card_body">	    
 						</div>
 						<div class="card-footer">
 							<form id="messageArea" class="input-group">
@@ -180,7 +180,7 @@
                         type: "GET",
                         url: "/history",
                     }).done(function (data) {
-                        $("#messageFormeight").html(""); // Clear existing messages
+                        $("#messageFormeight").html(); // Clear existing messages
                         data.forEach(msg => {
                             const date = new Date();
                             const hour = date.getHours();

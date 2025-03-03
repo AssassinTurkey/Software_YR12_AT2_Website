@@ -105,6 +105,7 @@ init_chatdata_db()
 @app.route('/')
 def index():
     session['Session'] = False
+    session['chat_id'] = None
     return render_template('testing.html')
 
 
@@ -236,7 +237,7 @@ def chat():
 
     chat_history.append({"role": "assistant", "content": bot_message})
 
-    if session['Session'] == False:
+    if session['Session'] == False and session['chat_id'] != None:
         # Append user message to database
         save_chat_message(session['chat_id'], user_input, 'user')
     
@@ -254,7 +255,7 @@ def new_chat():
         return jsonify({"error": "User not logged in"}), 401
 
     new_chat_id, new_chat_title = create_new_chat(session['user_id'])
-    print(session['chat_id'])
+    
     return jsonify({"message": "New chat created", "chat_id": new_chat_id, "chat_title": new_chat_title})
 
 
@@ -280,7 +281,7 @@ def load_chat():
 
 @app.route('/get_chats', methods=['GET'])
 def get_chats():
-    """Fetches a list of past chats for the current user."""
+    #Fetches a list of past chats for the current user.
     if 'user_id' not in session:
         return jsonify({"error": "User not logged in"}), 401
 
