@@ -264,6 +264,7 @@ def new_chat():
 @app.route("/load_chat", methods=["GET"])
 def load_chat():
     chat_id = request.args.get("chat_id")
+    print(chat_id)
 
     if not chat_id:
         return jsonify({"error": "Chat ID is required"}), 400
@@ -272,6 +273,8 @@ def load_chat():
     c = conn.cursor()
     c.execute("SELECT message, role FROM chat_data WHERE chat_id = ?", (chat_id,))
     chat_history = [{"role": row[1], "content": row[0]} for row in c.fetchall()]
+    print(chat_history)
+    conn.commit()
     conn.close()
 
     return jsonify({"messages": chat_history})
@@ -299,6 +302,7 @@ def get_chats():
 
 def create_new_chat(user_id, title='General'):
     """Create a new chat, reset chat history, and store the new chat ID in session."""
+    print(user_id)
     conn = sqlite3.connect('chat_history.db')
     c = conn.cursor()
     
@@ -350,7 +354,7 @@ def load_chat_history():
     return chat_history
 
 
- 
+
 
 if __name__ == '__main__':
     app.run(debug=True, ssl_context=("cert.pem", "key.pem"), host="0.0.0.0", port=443)
