@@ -29,14 +29,18 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=15)
 def enforce_https():
     if not request.is_secure:
         return redirect(request.url.replace('http://', 'https://'))
-    
+    if 'Session' not in session:
+        set_session_values()  # Ensure session values are set
+
 def make_session_permanent():
     session.permanent = True
+    set_session_values()  # Ensure session is properly initialized
 
 def set_session_values():
     session.clear()
     session['Session'] = False
     session['chat_id'] = None
+    session.modified = True  # Ensure Flask recognizes the changes
 
 
 
@@ -109,7 +113,7 @@ init_chatdata_db()
 
 @app.route('/')
 def index():
-    return render_template('testing.html')
+    return render_template('chat.html')
 
 
 
@@ -137,8 +141,10 @@ def login():
              session.clear()
              session['user_id'] = userInfo[0][0]
              session['username'] = userInfo[0][1]
+             session['permission_level'] = userInfo[0][3]
              session['csrf_token'] = str(uuid.uuid4())
              session['Session'] = True
+             session['chat_id'] = None # Reset chat ID
                       
              conn.commit()
              conn.close()
@@ -151,6 +157,10 @@ def login():
              conn.commit()
              conn.close()
              return redirect(url_for('index'))
+     if request.method == 'GET':
+        if session['Session'] == True:
+            print("ran")
+            return jsonify({"permission_level": session['permission_level']}) 
          
      return render_template('login.html')
 
@@ -198,8 +208,10 @@ def signup():
                     session.clear()
                     session['user_id'] = userInfo[0][0]
                     session['username'] = userInfo[0][1]
+                    session['permission_level'] = userInfo[0][3]
                     session['csrf_token'] = str(uuid.uuid4())
                     session['Session'] = True
+                    session['chat_id'] = None # Reset chat ID
 
                     conn.commit()
                     conn.close()
@@ -208,6 +220,23 @@ def signup():
                 return print('Database connection error')
      else:
         return render_template('signup.html')
+     
+
+
+
+@app.route('/logout', methods=['GET'])
+def logout():
+    session.clear()
+    session['Session'] = False
+    session['chat_id'] = None
+    return redirect(url_for('index'))
+
+
+
+
+@app.route('/admin', methods=['GET'])
+def admin():
+    return render_template('admin.html')
 
 
 
@@ -240,7 +269,7 @@ def chat():
 
     chat_history.append({"role": "assistant", "content": bot_message})
 
-    if session['Session'] == False and session['chat_id'] != None:
+    if session['Session'] == True and session['chat_id'] != None:
         # Append user message to database
         save_chat_message(session['chat_id'], user_input, 'user')
     
@@ -264,27 +293,6 @@ def new_chat():
 
 
 
-@app.route("/load_chat", methods=["GET"])
-def load_chat():
-    chat_id = request.args.get("chat_id")
-    print(chat_id)
-
-    if not chat_id:
-        return jsonify({"error": "Chat ID is required"}), 400
-
-    conn = sqlite3.connect('chat_data.db')
-    c = conn.cursor()
-    c.execute("SELECT message, role FROM chat_data WHERE chat_id = ?", (chat_id,))
-    chat_history = [{"role": row[1], "content": row[0]} for row in c.fetchall()]
-    print(chat_history)
-    conn.commit()
-    conn.close()
-
-    return jsonify({"messages": chat_history})
-
-
-
-
 @app.route('/get_chats', methods=['GET'])
 def get_chats():
     #Fetches a list of past chats for the current user.
@@ -299,6 +307,18 @@ def get_chats():
     conn.close()
 
     return jsonify(chats)
+
+
+
+
+@app.route('/set_chat_id', methods=['GET'])
+def set_chat_id():
+    chat_id = request.args.get("chat_id")
+    if not chat_id:
+        return jsonify({"error": "Chat ID is required"}), 400
+    
+    session['chat_id'] = chat_id
+    return jsonify({"message": "Chat ID set"})
 
 
 
@@ -349,8 +369,8 @@ def load_chat_history():
 
     conn = sqlite3.connect('chat_data.db')
     c = conn.cursor()
-    c.execute("SELECT message, role FROM chat_data WHERE chat_id = ?", (chat_id,))
-    chat_history = [{"role": row[1], "content": row[0]} for row in c.fetchall()]
+    c.execute("SELECT message, role, messageTime FROM chat_data WHERE chat_id = ?", (chat_id,))
+    chat_history = [{"role": row[1], "content": row[0], "time": row[2]} for row in c.fetchall()]
     
     conn.commit()
     conn.close()

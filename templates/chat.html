@@ -19,14 +19,20 @@
 			<div name='newChat'class="sidebar_button" onclick="createNewDom()" id="sidebar_button">
 				<p><i class="fa-solid fa-comments"></i> New Chat</p>
 			</div>
-			<div id="chatPlacement"></div>
+			<div id="chatPlacement">
+                <div id="chat-list"></div>
+            </div>
 		</div>
 		<div class="action_menu" id="menu">
 			<button class="action_menu_btn" id="openPopup"><i class="fa-solid fa-list"></i></button>
 			<div class="action_menu_content" id="popup">
 				<ul>
+					<div class="action_menu_admin" id="admin-window">
+						<li><a href="/admin"><i class="fa-solid fa-user"></i> Admin Panel</a></li>
+					</div>
 					<li><a href="/login"><i class="fa-solid fa-user"></i> Log In</a></li>
 					<li><a href="/signup"><i class="fa-solid fa-right-to-bracket"></i> Sign Up</a></li>
+					<li><a href="/logout"><i class="fa-solid fa-ghost"></i> Log Out</a></li>
 				</ul>
 			</div>
 		</div>
@@ -46,9 +52,7 @@
 								</div>
 							</div>
 						</div>
-						<div id="messageFormeight" class="card-body msg_card_body">
-							
-							
+						<div id="messageFormeight" class="card-body msg_card_body">	    
 						</div>
 						<div class="card-footer">
 							<form id="messageArea" class="input-group">
@@ -64,50 +68,14 @@
         </div>
 		
         <script>
-			document.getElementById("popup").style.display = "none";
-			document.getElementById("openPopup").onclick = function() {
-				if (document.getElementById("popup").style.display == "block") {
-					document.getElementById("popup").style.display = "none";
-				} else {
-					document.getElementById("popup").style.display = "block";
-				}
-			}
-
-            function scrollToBottom() {
-			var messageBody = document.getElementById("messageFormeight");
-			messageBody.scrollTop = messageBody.scrollHeight;
-		}
-			function createNewDom() {
-				var DOMHeadingOne = document.createElement("button");
-				DOMHeadingOne.innerHTML = 'Chat 1';
-				DOMHeadingOne.classList.add("newChat");
-				document.getElementById("chatPlacement").appendChild(DOMHeadingOne);
-			}
-
-			$(document).ready(function () {
-                loadChatHistory();
-
-                $("#messageArea").on("submit", function (event) {
-                    event.preventDefault();
-                    sendMessage();
-                });
-
-                function scrollToBottom() {
-                    var messageBody = document.getElementById("messageFormeight");
-                    messageBody.scrollTop = messageBody.scrollHeight;
-                }
-
-                function loadChatHistory() {
+            function loadChatHistory() {
                     $.ajax({
                         type: "GET",
                         url: "/history",
                     }).done(function (data) {
                         $("#messageFormeight").html(""); // Clear existing messages
                         data.forEach(msg => {
-                            const date = new Date();
-                            const hour = date.getHours();
-                            const minute = date.getMinutes();
-                            const str_time = hour + ":" + minute;
+                            const str_time = msg.time.split(" ")[1].slice(0, 5);
 
                             let messageHtml;
                             if (msg.role === "user") {
@@ -127,6 +95,133 @@
                         });
                         scrollToBottom();
                     });
+                }
+
+			document.getElementById("popup").style.display = "none";
+			document.getElementById("openPopup").onclick = function() {
+				if (document.getElementById("popup").style.display == "block") {
+					document.getElementById("popup").style.display = "none";
+				} else {
+					document.getElementById("popup").style.display = "block";
+				}
+			}
+
+            document.addEventListener("DOMContentLoaded", function () {
+                const chatList = document.getElementById("chat-list"); // Sidebar chat container
+                const chatWindow = document.getElementById("card-body msg_card_body"); // Chat display area
+                const newChatBtn = document.getElementById("sidebar_button"); // "New Chat" button
+                loadChatList(); // Load previous chats when the page loads
+
+                if (!chatList || !newChatBtn) {
+                    console.error("Missing elements: check IDs");
+                    return;
+                }
+                
+                // Handle new chat creation
+                newChatBtn.addEventListener("click", function () {
+                    fetch("/new_chat", { method: "POST" })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.chat_id) {
+                                addChatToSidebar(data.chat_id, data.chat_title, chatList);
+                                console.log(`New chat created with ID: ${data.chat_id}`);
+                            } else {
+                                console.error("Failed to create new chat");
+                            }
+                        })
+                        .catch(error => console.error("Error creating chat:", error));
+                });
+
+                fetch('/login', {
+                    method: "GET",
+                    //body: JSON.stringify({ username, password }),
+                    //headers: { "Content-Type": "application/json" }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadChatList(); // Load user's chats after login
+                    } 
+					else {
+                        console.error("Login failed");
+                    }
+					if (data.permission_level == 1) {
+						document.getElementById("admin-window").style.display = "block";
+						console.log("Admin login successful");
+					}
+                }); 
+
+                // Load chat when clicking a sidebar button
+                chatList.addEventListener("click", function (event) {
+                    if (event.target.classList.contains("sidebar_chat_button")) {
+                        const chatId = event.target.dataset.chatId;
+                        console.log(`Loading chat ID: ${chatId}`);
+                        loadChatHistory();
+                        //loadChat(chatId);
+                    }
+                });
+
+                // Function to add a new chat to the sidebar
+                function addChatToSidebar(chatId, chatTitle) {
+                    console.log(`Adding chat ${chatId} to sidebar`); // Debugging
+                    if (document.querySelector(`[data-chat-id="${chatId}"]`)) {
+                        console.warn("Chat already exists in sidebar");
+                        return;
+                    }
+
+                    createChatButton(chatId, chatTitle, chatList);
+                }
+
+
+                
+                function loadChatList() {
+                    fetch('/get_chats') // Fetch user's chats from the backend
+                        .then(response => response.json())
+                        .then(chats => {
+                            chatList.innerHTML = ""; // Clear existing chats
+
+                            chats.forEach(chat => {
+                                addChatToSidebar(chat.chat_id, chat.title, chatList);
+                            });
+                        })
+                        .catch(error => console.error("Error loading chat list:", error));
+                }
+
+                function createChatButton(chat_id, chat_title, chatListDiv) {
+                    let chatButton = document.createElement("button");
+                    chatButton.classList.add("sidebar_chat_button");
+                    chatButton.dataset.chatId = chat_id;
+                    chatButton.textContent = chat_title;
+                    chatButton.onclick = function () {
+                                    loadChat(chat_id);
+                                };
+                    chatListDiv.appendChild(chatButton);
+
+                }
+
+                // Function to load chat messages
+                function loadChat(chatId) {
+                    fetch(`/set_chat_id?chat_id=${chatId}`)
+                        loadChatHistory();
+                }
+            });
+
+                function scrollToBottom() {
+                var messageBody = document.getElementById("messageFormeight");
+                messageBody.scrollTop = messageBody.scrollHeight;
+            }
+
+			$(document).ready(function () {
+                loadChatHistory();
+
+                $("#messageArea").on("submit", function (event) {
+                    event.preventDefault();
+                    sendMessage();
+                });
+
+                function scrollToBottom() {
+                    var messageBody = document.getElementById("messageFormeight");
+                    messageBody.scrollTop = messageBody.scrollHeight;
                 }
 
                 function sendMessage() {

@@ -64,6 +64,35 @@
         </div>
 		
         <script>
+            function loadChatHistory() {
+                    $.ajax({
+                        type: "GET",
+                        url: "/history",
+                    }).done(function (data) {
+                        $("#messageFormeight").html(""); // Clear existing messages
+                        data.forEach(msg => {
+                            const str_time = msg.time;
+
+                            let messageHtml;
+                            if (msg.role === "user") {
+                                messageHtml = `<div class="d-flex justify-content-end mb-4">
+                                    <div class="msg_cotainer_send">${msg.content}
+                                    <span class="msg_time_send">${str_time}</span></div>
+                                    <div class="img_cont_msg"><img src="https://i.ibb.co/d5b84Xw/Untitled-design.png" class="rounded-circle user_img_msg"></div>
+                                </div>`;
+                            } else {
+                                messageHtml = `<div class="d-flex justify-content-start mb-4">
+                                    <div class="img_cont_msg"><img src="https://i.ibb.co/fSNP7Rz/icons8-chatgpt-512.png" class="rounded-circle user_img_msg"></div>
+                                    <div class="msg_cotainer">${msg.content}
+                                    <span class="msg_time">${str_time}</span></div>
+                                </div>`;
+                            }
+                            $("#messageFormeight").append($.parseHTML(messageHtml));
+                        });
+                        scrollToBottom();
+                    });
+                }
+
 			document.getElementById("popup").style.display = "none";
 			document.getElementById("openPopup").onclick = function() {
 				if (document.getElementById("popup").style.display == "block") {
@@ -118,7 +147,8 @@
                     if (event.target.classList.contains("sidebar_chat_button")) {
                         const chatId = event.target.dataset.chatId;
                         console.log(`Loading chat ID: ${chatId}`);
-                        loadChat(chatId);
+                        loadChatHistory();
+                        //loadChat(chatId);
                     }
                 });
 
@@ -162,18 +192,8 @@
 
                 // Function to load chat messages
                 function loadChat(chatId) {
-                    fetch(`/load_chat?chat_id=${chatId}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            chatWindow.innerHTML = ""; // Clear previous messages
-                            data.messages.forEach(msg => {
-                                const messageDiv = document.createElement("div");
-                                messageDiv.classList.add('msg_cotainer_send');
-                                messageDiv.textContent = msg.content;
-                                chatWindow.appendChild(messageDiv);
-                            });
-                        })
-                        .catch(error => console.error("Error loading chat:", error));
+                    fetch(`/set_chat_id?chat_id=${chatId}`)
+                        loadChatHistory();
                 }
             });
 
@@ -193,38 +213,6 @@
                 function scrollToBottom() {
                     var messageBody = document.getElementById("messageFormeight");
                     messageBody.scrollTop = messageBody.scrollHeight;
-                }
-
-                function loadChatHistory() {
-                    $.ajax({
-                        type: "GET",
-                        url: "/history",
-                    }).done(function (data) {
-                        $("#messageFormeight").html(); // Clear existing messages
-                        data.forEach(msg => {
-                            const date = new Date();
-                            const hour = date.getHours();
-                            const minute = date.getMinutes();
-                            const str_time = hour + ":" + minute;
-
-                            let messageHtml;
-                            if (msg.role === "user") {
-                                messageHtml = `<div class="d-flex justify-content-end mb-4">
-                                    <div class="msg_cotainer_send">${msg.content}
-                                    <span class="msg_time_send">${str_time}</span></div>
-                                    <div class="img_cont_msg"><img src="https://i.ibb.co/d5b84Xw/Untitled-design.png" class="rounded-circle user_img_msg"></div>
-                                </div>`;
-                            } else {
-                                messageHtml = `<div class="d-flex justify-content-start mb-4">
-                                    <div class="img_cont_msg"><img src="https://i.ibb.co/fSNP7Rz/icons8-chatgpt-512.png" class="rounded-circle user_img_msg"></div>
-                                    <div class="msg_cotainer">${msg.content}
-                                    <span class="msg_time">${str_time}</span></div>
-                                </div>`;
-                            }
-                            $("#messageFormeight").append($.parseHTML(messageHtml));
-                        });
-                        scrollToBottom();
-                    });
                 }
 
                 function sendMessage() {
