@@ -33,6 +33,11 @@ def enforce_https():
 def make_session_permanent():
     session.permanent = True
 
+def set_session_values():
+    session.clear()
+    session['Session'] = False
+    session['chat_id'] = None
+
 
 
 limiter = Limiter(get_remote_address, app=app, default_limits=["20 per minute"])
@@ -104,8 +109,6 @@ init_chatdata_db()
 
 @app.route('/')
 def index():
-    session['Session'] = False
-    session['chat_id'] = None
     return render_template('testing.html')
 
 

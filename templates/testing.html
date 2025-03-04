@@ -83,21 +83,7 @@
                     console.error("Missing elements: check IDs");
                     return;
                 }
-
-                fetch('/login', {
-                    method: "POST",
-                    body: JSON.stringify({ username, password }),
-                    headers: { "Content-Type": "application/json" }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        loadChatList(); // Load user's chats after login
-                    } else {
-                        console.error("Login failed");
-                    }
-                });
-
+                
                 // Handle new chat creation
                 newChatBtn.addEventListener("click", function () {
                     fetch("/new_chat", { method: "POST" })
@@ -111,6 +97,20 @@
                             }
                         })
                         .catch(error => console.error("Error creating chat:", error));
+                });
+
+                fetch('/login', {
+                    method: "POST",
+                    body: JSON.stringify({ username, password }),
+                    headers: { "Content-Type": "application/json" }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadChatList(); // Load user's chats after login
+                    } else {
+                        console.error("Login failed");
+                    }
                 });
 
                 // Load chat when clicking a sidebar button
@@ -168,7 +168,7 @@
                             chatWindow.innerHTML = ""; // Clear previous messages
                             data.messages.forEach(msg => {
                                 const messageDiv = document.createElement("div");
-                                messageDiv.classList.add(msg.role === "user" ? "user-message" : "bot-message");
+                                messageDiv.classList.add('msg_cotainer_send');
                                 messageDiv.textContent = msg.content;
                                 chatWindow.appendChild(messageDiv);
                             });
