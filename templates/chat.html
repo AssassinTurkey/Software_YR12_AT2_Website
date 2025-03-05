@@ -23,20 +23,20 @@
                 <div id="chat-list"></div>
             </div>
 		</div>
-		<div class="action_menu" id="menu">
-			<button class="action_menu_btn" id="openPopup"><i class="fa-solid fa-list"></i></button>
-			<div class="action_menu_content" id="popup">
-				<ul>
-					<div class="action_menu_admin" id="admin-window">
-						<li><a href="/admin"><i class="fa-solid fa-user"></i> Admin Panel</a></li>
-					</div>
-					<li><a href="/login"><i class="fa-solid fa-user"></i> Log In</a></li>
-					<li><a href="/signup"><i class="fa-solid fa-right-to-bracket"></i> Sign Up</a></li>
-					<li><a href="/logout"><i class="fa-solid fa-ghost"></i> Log Out</a></li>
-				</ul>
-			</div>
-		</div>
 		<div class="container-fluid h-100">
+            <div class="action_menu" id="menu">
+                <button class="action_menu_btn" id="openPopup"><i class="fa-solid fa-list"></i></button>
+                <div class="action_menu_content" id="popup">
+                    <ul>
+                        <div class="action_menu_admin" id="admin-window">
+                            <li><a href="/admin"><i class="fa-solid fa-user"></i> Admin Panel</a></li>
+                        </div>
+                        <li><a href="/login"><i class="fa-solid fa-user"></i> Log In</a></li>
+                        <li><a href="/signup"><i class="fa-solid fa-right-to-bracket"></i> Sign Up</a></li>
+                        <li><a href="/logout"><i class="fa-solid fa-ghost"></i> Log Out</a></li>
+                    </ul>
+                </div>
+            </div>
 			<div class="row justify-content-center h-100">		
 				<div class="col-md-8 col-xl-6 chat">
 					<div class="card">
@@ -134,21 +134,24 @@
 
                 fetch('/login', {
                     method: "GET",
-                    //body: JSON.stringify({ username, password }),
-                    //headers: { "Content-Type": "application/json" }
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         loadChatList(); // Load user's chats after login
+                        fetch('/check_perm_level', { method: "GET" })
+                            .then(response => response.json())
+                            .then(dat => {
+                                if (dat.message == "True") {
+                                    document.getElementById("admin-window").style.display = "block";
+                                    console.log("Admin login successful");
+                                }
+                            });
                     } 
 					else {
                         console.error("Login failed");
                     }
-					if (data.permission_level == 1) {
-						document.getElementById("admin-window").style.display = "block";
-						console.log("Admin login successful");
-					}
+
                 }); 
 
                 // Load chat when clicking a sidebar button
@@ -157,7 +160,6 @@
                         const chatId = event.target.dataset.chatId;
                         console.log(`Loading chat ID: ${chatId}`);
                         loadChatHistory();
-                        //loadChat(chatId);
                     }
                 });
 
@@ -219,10 +221,6 @@
                     sendMessage();
                 });
 
-                function scrollToBottom() {
-                    var messageBody = document.getElementById("messageFormeight");
-                    messageBody.scrollTop = messageBody.scrollHeight;
-                }
 
                 function sendMessage() {
                     const date = new Date();

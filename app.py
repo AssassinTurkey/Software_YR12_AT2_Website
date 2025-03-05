@@ -44,7 +44,7 @@ def set_session_values():
 
 
 
-limiter = Limiter(get_remote_address, app=app, default_limits=["20 per minute"])
+limiter = Limiter(get_remote_address, app=app, default_limits=["200 per minute"])
 
 
 
@@ -119,7 +119,7 @@ def index():
 
 
 @app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
+@limiter.limit("200 per minute")
 def login():
      if request.method == 'POST':
          
@@ -159,7 +159,6 @@ def login():
              return redirect(url_for('index'))
      if request.method == 'GET':
         if session['Session'] == True:
-            print("ran")
             return jsonify({"permission_level": session['permission_level']}) 
          
      return render_template('login.html')
@@ -168,7 +167,7 @@ def login():
 
 
 @app.route('/signup', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
+@limiter.limit("200 per minute")
 def signup():
      if request.method == 'POST':
 
@@ -319,6 +318,19 @@ def set_chat_id():
     
     session['chat_id'] = chat_id
     return jsonify({"message": "Chat ID set"})
+
+
+
+
+@app.route('/check_perm_level', methods=['GET'])
+def check_perm_level():
+    perm_level = request.args.get("permission_level")
+    print("Hello there", perm_level)
+    try:
+        if perm_level == 1:
+            return jsonify({"message": "True"})
+    except:
+        return jsonify({"error": "Permission level not found"}), 400
 
 
 
