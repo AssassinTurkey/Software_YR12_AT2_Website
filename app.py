@@ -3,18 +3,17 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_cors import CORS
-from transformers import AutoModelForCausalLM, AutoTokenizer
-import torch
 from markupsafe import escape
 import uuid
 from datetime import timedelta
 import ollama
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend communication
-app.secret_key = 'HelloThereGeneralKenobi'
+app.secret_key = '55428bfda7a40f8503d98fd3f6dd2e625aee4a1a58303f52a67904863ffbec41c409f556835771dcb208d9be05eac871758a7cf7a6ed90103e5138b4e75ff7caed4e14cd204c5470f61f3c2b135418fb998385995a89680d4b4890d56906b439521d0bb92f9028a100b532213878f46eb9c706ccb46349d528e7d77ebe1dfb40458f1f1ebd03ac7a4be83e9f8480b925cdacbdedd3b7acdd6f93459b17176b654cb22d83d18ad731355decad0ec7987c3ed6ec27e06a405723101b3d39bfeaf237aa227f4b16a3103b61b652f495909078e8162566d3b3ce8dfeb8050d872f866e0ea7e7c7d1fc75e6357fbef1967dde85ea12e0d62315cac813e4c7eb5251e3649903e7f38e79b2424af57ceb7492db737c606a38654d4265a47ebe6fc607b28b4cd1f057d5a47025d35fb10ecc114cd9903e18587958d19d7758c171a63f66'
 
 app.config.update(
     SESSION_COOKIE_SECURE=True,  # Enforces HTTPS for session cookies
@@ -50,9 +49,10 @@ limiter = Limiter(get_remote_address, app=app, default_limits=["200 per minute"]
 
 
 #Initialise the user database and creates it if it does not exist
-def init_user_db():
-    conn = sqlite3.connect('users.db')
+def init_db():
+    conn = sqlite3.connect('databases.db')
     c = conn.cursor()
+
     c.execute('''
                 CREATE TABLE IF NOT EXISTS users (
                 user_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,16 +61,7 @@ def init_user_db():
                 permission_level INTEGER DEFAULT 0 NOT NULL
                )
                 ''')
-    conn.commit()
-    conn.close()
-
-
-
-
-#Initialise the chat history database and creates it if it does not exist
-def init_chathistory_db():
-    conn = sqlite3.connect('chat_history.db')
-    c = conn.cursor()
+    
     c.execute('''
               CREATE TABLE IF NOT EXISTS chat_history (
               chat_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,15 +71,7 @@ def init_chathistory_db():
               FOREIGN KEY (user_id) REFERENCES users(user_id)
               )
               ''')
-    conn.commit()
-    conn.close()
-
-
-
-
-def init_chatdata_db():
-    conn = sqlite3.connect('chat_data.db')
-    c = conn.cursor()
+    
     c.execute('''
               CREATE TABLE IF NOT EXISTS chat_data (
               chat_id INTEGER,
@@ -98,15 +81,14 @@ def init_chatdata_db():
               FOREIGN KEY (chat_id) REFERENCES chat_history(chat_id)
               )
               ''')
+    
     conn.commit()
     conn.close()
 
 
 
 
-init_user_db()
-init_chathistory_db()
-init_chatdata_db()
+init_db()
 
 
 
@@ -130,37 +112,32 @@ def login():
             return redirect(url_for('login'))
          
          else:
-             conn = sqlite3.connect('users.db')
-             conn.row_factory = sqlite3.Row
-             c = conn.cursor()
-             c.execute('''
-                    SELECT * from users where username = (?) and password = (?)
-                    ''', [username, password])
-             userInfo = c.fetchall()
+             try:
+                conn = sqlite3.connect('databases.db')
+                conn.row_factory = sqlite3.Row
+                c = conn.cursor()
 
-             session.clear()
-             session['user_id'] = userInfo[0][0]
-             session['username'] = userInfo[0][1]
-             session['permission_level'] = userInfo[0][3]
-             session['csrf_token'] = str(uuid.uuid4())
-             session['Session'] = True
-             session['chat_id'] = None # Reset chat ID
-                      
-             conn.commit()
-             conn.close()
+                c.execute("SELECT * FROM users WHERE username = ?", (username,))
+                user = c.fetchone()  # Now returns a single row or None if no match
 
-             conn = sqlite3.connect('chat_history.db')
-             c = conn.cursor()
-             chatInfo = c.execute('''
-                        SELECT * from chat_history where user_id = (?)
-                        ''', [session['user_id']]).fetchall()
-             conn.commit()
-             conn.close()
-             return redirect(url_for('index'))
-     if request.method == 'GET':
-        if session['Session'] == True:
-            return jsonify({"permission_level": session['permission_level']}) 
-         
+                if user:  # Check if a user was found
+                    user = dict(user)
+
+                    if check_password_hash(user["password"], str(password)) == True:  # Use column names
+                        session.clear()
+                        session['user_id'] = user["user_id"]
+                        session['username'] = user["username"]
+                        session['permission_level'] = user["permission_level"]
+                        session['csrf_token'] = str(uuid.uuid4())
+                        session['Session'] = True
+                        session['chat_id'] = None  # Reset chat ID
+
+
+                conn.commit()
+                conn.close()
+                return redirect(url_for('index'))
+             except:
+                 jsonify({"error": "User does not exist"}), 400
      return render_template('login.html')
 
 
@@ -173,7 +150,7 @@ def signup():
 
         #Gets username and password from the form
         username = escape(request.form.get('username'))
-        password = escape(request.form.get('password'))
+        password = generate_password_hash(escape(request.form.get('password')))
         
         #Check if the username and password are empty
         if username == '' or password == '':
@@ -181,8 +158,9 @@ def signup():
         else:
             #Connect to the database
             try:
-                conn = sqlite3.connect('users.db')
+                conn = sqlite3.connect('databases.db')
                 c = conn.cursor()
+
                 c.execute('''
                         SELECT * from users where username = (?)
                         ''', [username])
@@ -210,13 +188,13 @@ def signup():
                     session['permission_level'] = userInfo[0][3]
                     session['csrf_token'] = str(uuid.uuid4())
                     session['Session'] = True
-                    session['chat_id'] = None # Reset chat ID
+                    session['chat_id'] = None
 
                     conn.commit()
                     conn.close()
                     return redirect(url_for('index'))
             except:
-                return print('Database connection error')
+                return jsonify({"error": "Database Connection Error"}), 500
      else:
         return render_template('signup.html')
      
@@ -257,7 +235,7 @@ def chat():
     if not user_input:
         return jsonify({"error": "Message cannot be empty"}), 400
 
-    model = "llama3.1"  # Replace with your preferred model
+    model = "llama3.1"
     chat_history = load_chat_history()
     chat_history.append({"role": "user", "content": user_input})
       
@@ -274,6 +252,8 @@ def chat():
     
         # Append bot message to database
         save_chat_message(session['chat_id'], bot_message, 'assistant')
+
+        create_chat_title(session['chat_id'], model, user_input)
     
     return jsonify({"response": bot_message})
 
@@ -298,14 +278,23 @@ def get_chats():
     if 'user_id' not in session:
         return jsonify({"error": "User not logged in"}), 401
 
-    conn = sqlite3.connect('chat_history.db')
+    conn = sqlite3.connect('databases.db')
     c = conn.cursor()
+
     c.execute("SELECT chat_id, chatTitle FROM chat_history WHERE user_id = ?", (session['user_id'],))
+
     chats = [{"chat_id": row[0], "title": row[1]} for row in c.fetchall()]
     conn.commit()
     conn.close()
 
     return jsonify(chats)
+
+
+
+
+@app.route("/admin_get_chats", methods=["GET"])
+def admin_chats():
+    return jsonify(admin_all_chats())
 
 
 
@@ -324,21 +313,38 @@ def set_chat_id():
 
 @app.route('/check_perm_level', methods=['GET'])
 def check_perm_level():
-    perm_level = request.args.get("permission_level")
-    print("Hello there", perm_level)
+    perm_level = session.get('permission_level')
     try:
         if perm_level == 1:
             return jsonify({"message": "True"})
+        
+        else:
+            return jsonify({"error": "Not an admin"}), 200
+        
     except:
         return jsonify({"error": "Permission level not found"}), 400
 
 
 
 
-def create_new_chat(user_id, title='General'):
+@app.route("/delete_chat/<int:chat_id>", methods=["DELETE"])
+def delete_chat(chat_id):
+    conn = sqlite3.connect("databases.db")
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM chat_history WHERE chat_id = ?", (chat_id,))
+
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": "Chat deleted successfully!"})
+
+
+
+
+def create_new_chat(user_id, title='New Chat'):
     """Create a new chat, reset chat history, and store the new chat ID in session."""
     print(user_id)
-    conn = sqlite3.connect('chat_history.db')
+    conn = sqlite3.connect('databases.db')
     c = conn.cursor()
     
     # Insert new chat and get chat ID
@@ -361,12 +367,32 @@ def create_new_chat(user_id, title='General'):
 
 def save_chat_message(chat_id, msg, role):
     """Save a message to the chat_data table under the given chat_id."""
-    conn = sqlite3.connect('chat_data.db')
+    conn = sqlite3.connect('databases.db')
     c = conn.cursor()
+
     c.execute('''
                 INSERT INTO chat_data (chat_id, message, role)
                 VALUES (?, ?, ?)
               ''', (chat_id, msg, role))
+    
+    conn.commit()
+    conn.close()
+
+
+
+
+def create_chat_title(chat_id, model, prompt):
+    """Create a chat title based on the first message in the chat."""
+    conn = sqlite3.connect('databases.db')
+    c = conn.cursor()
+    c.execute('''
+              SELECT chatTitle FROM chat_history WHERE chat_id = ?
+              ''', (chat_id,))  
+    chat_title = c.fetchone()
+    if chat_title[0] == 'New Chat':
+        title_prompt = f"Generate a 2-3 word summary of the topic in this promt: {prompt}"
+        response = ollama.chat(model=model, messages=[{"role": "user", "content": title_prompt}])
+        c.execute("UPDATE chat_history SET chatTitle = ? WHERE chat_id = ?", (response["message"]["content"], chat_id))
     conn.commit()
     conn.close()
 
@@ -379,7 +405,7 @@ def load_chat_history():
     if not chat_id:
         return []  # Return empty list if no chat is selected
 
-    conn = sqlite3.connect('chat_data.db')
+    conn = sqlite3.connect('databases.db')
     c = conn.cursor()
     c.execute("SELECT message, role, messageTime FROM chat_data WHERE chat_id = ?", (chat_id,))
     chat_history = [{"role": row[1], "content": row[0], "time": row[2]} for row in c.fetchall()]
@@ -387,6 +413,23 @@ def load_chat_history():
     conn.commit()
     conn.close()
     return chat_history
+
+
+
+
+def admin_all_chats():
+    conn = sqlite3.connect("databases.db")
+    c = conn.cursor()
+    c.execute("""
+                    SELECT chat_history.chat_id, users.username, chat_history.chatTitle 
+                    FROM chat_history 
+                    JOIN users ON chat_history.user_id = users.user_id
+                    """)
+    chats = c.fetchall()
+    conn.close()
+    
+    # Parse data into JSON format
+    return [{"chat_id": row[0], "username": row[1], "chat_title": row[2]} for row in chats]
 
 
 

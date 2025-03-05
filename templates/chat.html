@@ -97,6 +97,18 @@
                     });
                 }
 
+            function get_perm_level() {
+                $.ajax({
+                    type: "GET",
+                    url: "/check_perm_level",
+                }).done(function (data) {
+                    if (data.message == "True") {
+                        document.getElementById("admin-window").style.display = "block";
+                        console.log("Admin login successful");
+                    }
+                });
+            }
+
 			document.getElementById("popup").style.display = "none";
 			document.getElementById("openPopup").onclick = function() {
 				if (document.getElementById("popup").style.display == "block") {
@@ -131,28 +143,6 @@
                         })
                         .catch(error => console.error("Error creating chat:", error));
                 });
-
-                fetch('/login', {
-                    method: "GET",
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        loadChatList(); // Load user's chats after login
-                        fetch('/check_perm_level', { method: "GET" })
-                            .then(response => response.json())
-                            .then(dat => {
-                                if (dat.message == "True") {
-                                    document.getElementById("admin-window").style.display = "block";
-                                    console.log("Admin login successful");
-                                }
-                            });
-                    } 
-					else {
-                        console.error("Login failed");
-                    }
-
-                }); 
 
                 // Load chat when clicking a sidebar button
                 chatList.addEventListener("click", function (event) {
@@ -214,6 +204,7 @@
             }
 
 			$(document).ready(function () {
+                get_perm_level();
                 loadChatHistory();
 
                 $("#messageArea").on("submit", function (event) {

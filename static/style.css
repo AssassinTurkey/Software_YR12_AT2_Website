@@ -31,6 +31,10 @@ body,html{
 border-radius: 0 0 15px 15px !important;
 	border-top: 0 !important;
 }
+.card-footer h5 {
+	font-size: 20px;
+	color: white;
+}
 .container{
 	align-content: center;
 }
@@ -135,6 +139,10 @@ border-radius: 0 0 15px 15px !important;
 	font-size: 10px;
 	color: rgba(255,255,255,0.6);
 }
+.user_info a {
+	font-size: 10px;
+	color: rgba(255,255,255,0.6);
+}
 .video_cam{
 	margin-left: 50px;
 	margin-top: 5px;
@@ -197,17 +205,13 @@ border-radius: 0 0 15px 15px !important;
 	border: none;
 	outline: none;
 }
-.action_menu{
-	/*animation: fadeIn 0.5s;*/
-	margin-left: 85%;
-	width: 200px;
-	position: relative;
-	display: inline-block;
+.action_menu {
+    margin-left: 0;
+    right: 15px;
+    width: 200px;
+    position: absolute;
+    display: inline-block;
 }
-/*@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}*/
 .action_menu_content{
 	display: none;
 	position: absolute;
@@ -263,7 +267,7 @@ border-radius: 0 0 15px 15px !important;
 	border-radius: 15px;
 	margin-left:-15px;
 	transition: all 0.3s;
-	overflow: hidden; /* Prevents the entire sidebar from scrolling */
+	overflow: hidden; 
 }
 .sidebar_button {
 	position: absolute;
@@ -284,7 +288,7 @@ border-radius: 0 0 15px 15px !important;
 	color: white;
 	font-size: 20px;
 	cursor: pointer;
-	margin-bottom: 10px; /* Adds space between buttons */
+	margin-bottom: 10px; 
 }
 .sidebar_button:hover {
 	background: rgba(0,0,0,0.5);
@@ -311,25 +315,50 @@ border-radius: 0 0 15px 15px !important;
 #chat-list {
     display: flex;
     flex-direction: column;
+	gap: 5px;
 }
 #chatPlacement {
     margin-top: 30%; 
-    overflow-y: auto; /* Enables vertical scrolling */
-    max-height: calc(100vh - 60px); /* Prevents overflow beyond the viewport */
+    overflow-y: auto; 
+    max-height: calc(100vh - 60px); 
     padding-right: 5px;
 }
-
-/* Optional: Hide scrollbar for a cleaner look */
 #chatPlacement::-webkit-scrollbar {
     width: 6px;
 }
-
 #chatPlacement::-webkit-scrollbar-thumb {
     background: #bdbdbd;
     border-radius: 3px;
 }
-
 #chatPlacement::-webkit-scrollbar-thumb:hover {
+    background: #888;
+}
+.admin_button {
+	width: 100%;
+	height: 50px;
+	background: rgba(0,0,0,0.4);
+	border-radius: 15px;
+	cursor: pointer;
+	border: none;
+	color: white;
+	font-size: 15px;
+	text-align: left;
+	padding-top: 10px;
+	padding-left: 5px;
+}
+#adminPlacement {
+	overflow-y: auto; 
+    max-height: calc(100vh - 60px); 
+    padding-right: 5px;
+}
+#adminPlacement::-webkit-scrollbar {
+    width: 6px;
+}
+#adminPlacement::-webkit-scrollbar-thumb {
+    background: #bdbdbd;
+    border-radius: 3px;
+}
+#adminPlacement::-webkit-scrollbar-thumb:hover {
     background: #888;
 }
 @media(max-width: 576px){
