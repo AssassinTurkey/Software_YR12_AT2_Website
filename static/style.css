@@ -104,6 +104,10 @@ border-radius: 0 0 15px 15px !important;
 	border:1.5px solid #f5f6fa;
 
 }
+
+.user-window {
+	display: none;
+}
 .img_cont{
 	position: relative;
 	height: 70px;
@@ -360,6 +364,13 @@ border-radius: 0 0 15px 15px !important;
 }
 #adminPlacement::-webkit-scrollbar-thumb:hover {
     background: #888;
+}
+.chat-history-container {
+    max-height: 400px; /* Limit the height to make it scrollable */
+    overflow-y: auto;  /* Enable vertical scrolling */
+    padding: 10px;
+    background: #f8f9fa; /* Light gray background for contrast */
+    border-radius: 5px;
 }
 @media(max-width: 576px){
 	.contacts_card{

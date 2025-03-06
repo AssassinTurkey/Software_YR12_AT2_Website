@@ -1,6 +1,7 @@
 <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
-<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+<script src="https://kit.fontawesome.com/cf3e2ae5a1.js" crossorigin="anonymous"></script>
 
 
 <!DOCTYPE html>
@@ -38,46 +39,99 @@
 				</div>
 			</div>
 		</div>
+		<div class="modal fade" id="chatHistoryModal" tabindex="-1" role="dialog" aria-labelledby="chatHistoryModalLabel" aria-hidden="true">
+			<div class="modal-dialog modal-lg" role="document">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="chatHistoryModalLabel">Chat History</h5>
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+						</button>
+					</div>
+					<div class="modal-body">
+						<div id="messageFormeight" class="chat-history-container"></div>
+					</div>
+				</div>
+			</div>
+		</div>
 	</body>
 	<script>
 		$(document).ready(function() {
-			loadChats();
-	
-			// Function to load chats
-			function loadChats() {
-				$.ajax({
-					url: "/admin_get_chats",
-					type: "GET",
-					success: function(chats) {
-						$("#chat-list").empty(); // Clear previous list
-						chats.forEach(chat => {
-							$("#chat-list").append(`
-								<div class="admin_button">
-								Username: ${chat.username} &emsp;&emsp; Chat id: ${chat.chat_id} &nbsp; Chat Title: ${chat.chat_title}
-									<button class="btn btn-danger btn-sm delete-chat" data-id="${chat.chat_id}">
-										<i class="fas fa-trash-alt"></i>
-									</button>
-								</div>
-							`);
-						});
-					}
-				});
-			}
-	
-			// Handle chat deletion
-			$(document).on("click", ".delete-chat", function() {
-				let chatId = $(this).data("id");
-				if (confirm("Are you sure you want to delete this chat?")) {
-					$.ajax({
-						url: `/delete_chat/${chatId}`,
-						type: "DELETE",
-						success: function(response) {
-							alert(response.message);
-							loadChats(); // Reload chat list after deletion
-						}
+		loadChats();
+
+		function loadChats() {
+			$.ajax({
+				url: "/admin_get_chats",
+				type: "GET",
+				success: function(chats) {
+					$("#chat-list").empty(); // Clear previous list
+					chats.forEach(chat => {
+						$("#chat-list").append(`
+							<div class="admin_button">
+								<button class="btn btn-link view-chat" data-id="${chat.chat_id}" data-username="${chat.username}">
+									Username: ${chat.username} | Chat ID: ${chat.chat_id} | Title: ${chat.chat_title}
+								</button>
+								<button class="btn btn-danger btn-sm delete-chat" data-id="${chat.chat_id}">
+									<i class="fas fa-trash-alt"></i>
+								</button>
+							</div>
+						`);
 					});
 				}
 			});
+		}
+
+		// Handle chat selection and show modal
+		$(document).on("click", ".view-chat", function() {
+			let chatId = $(this).data("id");
+			let username = $(this).data("username");
+
+			$("#chatHistoryModalLabel").text(`Chat History with ${username}`);
+			$("#messageFormeight").html("<p>Loading chat history...</p>"); // Show loading text
+
+			$.ajax({
+				url: `/history`,  // Assuming your backend provides chat history by chat_id
+				type: "GET",
+				success: function(data) {
+					$("#messageFormeight").html(""); // Clear previous messages
+					data.forEach(msg => {
+						const str_time = msg.time.split(" ")[1].slice(0, 5);
+						let messageHtml;
+						if (msg.role === "user") {
+							messageHtml = `<div class="d-flex justify-content-end mb-4">
+								<div class="msg_cotainer_send">${msg.content}
+								<span class="msg_time_send">${str_time}</span></div>
+								<div class="img_cont_msg"><img src="https://i.ibb.co/d5b84Xw/Untitled-design.png" class="rounded-circle user_img_msg"></div>
+							</div>`;
+						} else {
+							messageHtml = `<div class="d-flex justify-content-start mb-4">
+								<div class="img_cont_msg"><img src="https://i.ibb.co/fSNP7Rz/icons8-chatgpt-512.png" class="rounded-circle user_img_msg"></div>
+								<div class="msg_cotainer">${msg.content}
+								<span class="msg_time">${str_time}</span></div>
+							</div>`;
+						}
+						$("#messageFormeight").append($.parseHTML(messageHtml));
+					});
+				}
+			});
+
+			$("#chatHistoryModal").modal("show"); // Show the modal
 		});
+
+		// Handle chat deletion
+		$(document).on("click", ".delete-chat", function() {
+			let chatId = $(this).data("id");
+			if (confirm("Are you sure you want to delete this chat?")) {
+				$.ajax({
+					url: `/delete_chat/${chatId}`,
+					type: "DELETE",
+					success: function(response) {
+						alert(response.message);
+						loadChats(); // Reload chat list after deletion
+					}
+				});
+			}
+		});
+	});
 	</script>
 </html>   

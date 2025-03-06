@@ -29,7 +29,10 @@
                 <div class="action_menu_content" id="popup">
                     <ul>
                         <div class="action_menu_admin" id="admin-window">
-                            <li><a href="/admin"><i class="fa-solid fa-user"></i> Admin Panel</a></li>
+                            <li><a href="{{ url_for('request_admin') }}"><i class="fa-solid fa-user"></i> Admin Panel</a></li>
+                        </div>
+                        <div class="user-window">
+                            <li><a href="/login"><i class="fa-solid fa-user"></i> Profile</a></li>
                         </div>
                         <li><a href="/login"><i class="fa-solid fa-user"></i> Log In</a></li>
                         <li><a href="/signup"><i class="fa-solid fa-right-to-bracket"></i> Sign Up</a></li>
@@ -100,12 +103,12 @@
             function get_perm_level() {
                 $.ajax({
                     type: "GET",
-                    url: "/check_perm_level",
+                    url: "/check_user_data",
                 }).done(function (data) {
-                    if (data.message == "True") {
-                        document.getElementById("admin-window").style.display = "block";
-                        console.log("Admin login successful");
-                    }
+                        if(data.message == "True") {
+                            document.getElementById("admin-window").style.display = "block";
+                            console.log("Admin login successful");
+                        }
                 });
             }
 
@@ -171,7 +174,6 @@
                         .then(response => response.json())
                         .then(chats => {
                             chatList.innerHTML = ""; // Clear existing chats
-
                             chats.forEach(chat => {
                                 addChatToSidebar(chat.chat_id, chat.title, chatList);
                             });

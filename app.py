@@ -211,7 +211,18 @@ def logout():
 
 
 
-@app.route('/admin', methods=['GET'])
+@app.route('/request_admin', methods=['GET'])
+def request_admin():
+    print(session['permission_level'])
+    if session['permission_level'] == 1:
+        return redirect(url_for('admin'))
+    else:
+        return jsonify({'error': "Not Admin User"}), 401
+    
+
+
+
+@app.route('/admin')
 def admin():
     return render_template('admin.html')
 
@@ -311,15 +322,17 @@ def set_chat_id():
 
 
 
-@app.route('/check_perm_level', methods=['GET'])
+@app.route('/check_user_data', methods=['GET'])
 def check_perm_level():
     perm_level = session.get('permission_level')
+    in_session = session.get('Session')
     try:
         if perm_level == 1:
-            return jsonify({"message": "True"})
-        
+            return jsonify({"message": "True", "in_session": "True"})
+        elif in_session == True:
+            return jsonify({"message": "sfihsbi33bjefowefwewegarerbrpo22u393", "in_session": "True"})     
         else:
-            return jsonify({"error": "Not an admin"}), 200
+            return jsonify({"message": "sdfhbwefobqbfinewvvweeve018y5249tggw", "in_session": "False"})
         
     except:
         return jsonify({"error": "Permission level not found"}), 400
