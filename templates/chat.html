@@ -1,6 +1,6 @@
 <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
-<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
 <script src="https://kit.fontawesome.com/cf3e2ae5a1.js" crossorigin="anonymous"></script>
 
 <!DOCTYPE html>
@@ -31,8 +31,8 @@
                         <div class="action_menu_admin" id="admin-window">
                             <li><a href="{{ url_for('request_admin') }}"><i class="fa-solid fa-user"></i> Admin Panel</a></li>
                         </div>
-                        <div class="user-window">
-                            <li><a href="/login"><i class="fa-solid fa-user"></i> Profile</a></li>
+                        <div class="user-window", id="user-window">
+                            <li><a href="/user_profile"><i class="fa-solid fa-user"></i> Profile</a></li>
                         </div>
                         <li><a href="/login"><i class="fa-solid fa-user"></i> Log In</a></li>
                         <li><a href="/signup"><i class="fa-solid fa-right-to-bracket"></i> Sign Up</a></li>
@@ -74,7 +74,7 @@
             function loadChatHistory() {
                     $.ajax({
                         type: "GET",
-                        url: "/history",
+                        url: '/history',
                     }).done(function (data) {
                         $("#messageFormeight").html(""); // Clear existing messages
                         data.forEach(msg => {
@@ -105,10 +105,13 @@
                     type: "GET",
                     url: "/check_user_data",
                 }).done(function (data) {
-                        if(data.message == "True") {
+                    if(data.in_session === "True") {
+                        document.getElementById("user-window").style.display = "block";
+                        if(data.message === "True") {
                             document.getElementById("admin-window").style.display = "block";
                             console.log("Admin login successful");
                         }
+                    }
                 });
             }
 

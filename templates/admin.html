@@ -1,6 +1,4 @@
 <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
-<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
 <script src="https://kit.fontawesome.com/cf3e2ae5a1.js" crossorigin="anonymous"></script>
 
 
@@ -42,20 +40,73 @@
 		<div class="modal fade" id="chatHistoryModal" tabindex="-1" role="dialog" aria-labelledby="chatHistoryModalLabel" aria-hidden="true">
 			<div class="modal-dialog modal-lg" role="document">
 				<div class="modal-content">
-					<div class="modal-header">
-						<h5 class="modal-title" id="chatHistoryModalLabel">Chat History</h5>
-						<button type="button" class="close" data-dismiss="modal" aria-label="Close">
-							<span aria-hidden="true">&times;</span>
-						</button>
-					</div>
-					<div class="modal-body">
-						<div id="messageFormeight" class="chat-history-container"></div>
+					<!-- Chat Header -->
+					<div class="card">
+						<div class="modal-header msg_head">
+							<div class="card-header msg_head">
+								<div class="d-flex bd-highlight">
+									<div class="img_cont">
+										<img src="https://i.ibb.co/fSNP7Rz/icons8-chatgpt-512.png" class="rounded-circle user_img">
+										<span class="online_icon"></span>
+									</div>
+									<div class="user_info">
+										<span>Chat History</span>
+										<p>View past messages</p>
+									</div>
+								</div>
+							</div>
+							<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+								<span aria-hidden="true">&times;</span>
+							</button>
+						</div>
+		
+					<!-- Chat Body -->
+					 
+						<div id="messageFormeight" class="card-body msg_card_body"></div>
 					</div>
 				</div>
 			</div>
 		</div>
 	</body>
+
+	<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
 	<script>
+		function loadChatHistory() {
+			$.ajax({
+				type: "GET",
+				url: '/history',
+			}).done(function (data) {
+				$("#messageFormeight").html(""); // Clear existing messages
+				data.forEach(msg => {
+					const str_time = msg.time.split(" ")[1].slice(0, 5);
+
+					let messageHtml;
+					if (msg.role === "user") {
+						messageHtml = `<div class="d-flex justify-content-end mb-4">
+							<div class="msg_cotainer_send">${msg.content}
+							<span class="msg_time_send">${str_time}</span></div>
+							<div class="img_cont_msg"><img src="https://i.ibb.co/d5b84Xw/Untitled-design.png" class="rounded-circle user_img_msg"></div>
+						</div>`;
+					} else {
+						messageHtml = `<div class="d-flex justify-content-start mb-4">
+							<div class="img_cont_msg"><img src="https://i.ibb.co/fSNP7Rz/icons8-chatgpt-512.png" class="rounded-circle user_img_msg"></div>
+							<div class="msg_cotainer">${msg.content}
+							<span class="msg_time">${str_time}</span></div>
+						</div>`;
+					}
+					$("#messageFormeight").append($.parseHTML(messageHtml));
+				});
+			});
+		}
+
+
+		function loadChat(chatId) {
+			fetch(`/set_chat_id?chat_id=${chatId}`)
+				loadChatHistory();
+		}
+
+
 		$(document).ready(function() {
 		loadChats();
 
@@ -80,7 +131,7 @@
 				}
 			});
 		}
-
+		
 		// Handle chat selection and show modal
 		$(document).on("click", ".view-chat", function() {
 			let chatId = $(this).data("id");
@@ -88,32 +139,7 @@
 
 			$("#chatHistoryModalLabel").text(`Chat History with ${username}`);
 			$("#messageFormeight").html("<p>Loading chat history...</p>"); // Show loading text
-
-			$.ajax({
-				url: `/history`,  // Assuming your backend provides chat history by chat_id
-				type: "GET",
-				success: function(data) {
-					$("#messageFormeight").html(""); // Clear previous messages
-					data.forEach(msg => {
-						const str_time = msg.time.split(" ")[1].slice(0, 5);
-						let messageHtml;
-						if (msg.role === "user") {
-							messageHtml = `<div class="d-flex justify-content-end mb-4">
-								<div class="msg_cotainer_send">${msg.content}
-								<span class="msg_time_send">${str_time}</span></div>
-								<div class="img_cont_msg"><img src="https://i.ibb.co/d5b84Xw/Untitled-design.png" class="rounded-circle user_img_msg"></div>
-							</div>`;
-						} else {
-							messageHtml = `<div class="d-flex justify-content-start mb-4">
-								<div class="img_cont_msg"><img src="https://i.ibb.co/fSNP7Rz/icons8-chatgpt-512.png" class="rounded-circle user_img_msg"></div>
-								<div class="msg_cotainer">${msg.content}
-								<span class="msg_time">${str_time}</span></div>
-							</div>`;
-						}
-						$("#messageFormeight").append($.parseHTML(messageHtml));
-					});
-				}
-			});
+			loadChat(chat_id)
 
 			$("#chatHistoryModal").modal("show"); // Show the modal
 		});

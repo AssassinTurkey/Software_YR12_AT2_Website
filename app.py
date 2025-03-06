@@ -43,6 +43,7 @@ def set_session_values():
 
 
 
+
 limiter = Limiter(get_remote_address, app=app, default_limits=["200 per minute"])
 
 
@@ -110,6 +111,8 @@ def login():
 
          if username == '' or password == '':
             return redirect(url_for('login'))
+         elif len(username) > 50 or len(password) > 50:
+             return redirect(url_for('login'))
          
          else:
              try:
@@ -155,6 +158,9 @@ def signup():
         #Check if the username and password are empty
         if username == '' or password == '':
             return redirect(url_for('signup'))
+        elif len(username) > 50 or len(password) > 50:
+             return redirect(url_for('signup'))
+        
         else:
             #Connect to the database
             try:
@@ -232,6 +238,7 @@ def admin():
 # Fetch chat history endpoint
 @app.route("/history", methods=["GET"])
 def history():
+    print('ran')
     return jsonify(load_chat_history())
 
 
@@ -323,7 +330,7 @@ def set_chat_id():
 
 
 @app.route('/check_user_data', methods=['GET'])
-def check_perm_level():
+def check_user_data():
     perm_level = session.get('permission_level')
     in_session = session.get('Session')
     try:
@@ -354,9 +361,14 @@ def delete_chat(chat_id):
 
 
 
+@app.route("/user_profile")
+def user_profile():
+    return render_template('user_profile.html')
+
+
+
 def create_new_chat(user_id, title='New Chat'):
     """Create a new chat, reset chat history, and store the new chat ID in session."""
-    print(user_id)
     conn = sqlite3.connect('databases.db')
     c = conn.cursor()
     
@@ -414,9 +426,11 @@ def create_chat_title(chat_id, model, prompt):
 
 def load_chat_history():
     """Load chat history for the current chat_id in the session."""
-    chat_id = session.get('chat_id')
-    if not chat_id:
+    chat_id= session.get('chat_id')
+    if not session['chat_id']:
         return []  # Return empty list if no chat is selected
+
+           
 
     conn = sqlite3.connect('databases.db')
     c = conn.cursor()

@@ -372,6 +372,15 @@ border-radius: 0 0 15px 15px !important;
     background: #f8f9fa; /* Light gray background for contrast */
     border-radius: 5px;
 }
+.modal-content {
+    background-color: rgba(0, 0, 0, 0.2); /* Light gray background */
+    border-radius: 15px; /* Rounded corners */
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2); /* Soft shadow */
+    border: none;
+}
+.close {
+	color: #f8f9fa;
+}
 @media(max-width: 576px){
 	.contacts_card{
 	margin-bottom: 15px !important;
