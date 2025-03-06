@@ -198,8 +198,11 @@
 
                 // Function to load chat messages
                 function loadChat(chatId) {
-                    fetch(`/set_chat_id?chat_id=${chatId}`)
+			    fetch(`/set_chat_id?chat_id=${chatId}`)
+                    .then(response => response.json())
+                    .then(data => {
                         loadChatHistory();
+                    });
                 }
             });
 

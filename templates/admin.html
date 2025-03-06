@@ -11,6 +11,7 @@
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 		<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css')}}"/>
 	</head>
+
 	<body>
 		<div class="container-fluid h-100">
 			<div class="row justify-content-center h-100">		
@@ -55,7 +56,7 @@
 									</div>
 								</div>
 							</div>
-							<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+							<button type="button" class="close" data-dismiss="modal" aria-label="Close", id="close">
 								<span aria-hidden="true">&times;</span>
 							</button>
 						</div>
@@ -72,6 +73,14 @@
 	<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 	<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
 	<script>
+		function loadChat(chatId) {
+			fetch(`/set_chat_id?chat_id=${chatId}`)
+				.then(response => response.json())
+				.then(data => {
+					loadChatHistory();
+				});
+		}
+
 		function loadChatHistory() {
 			$.ajax({
 				type: "GET",
@@ -98,12 +107,6 @@
 					$("#messageFormeight").append($.parseHTML(messageHtml));
 				});
 			});
-		}
-
-
-		function loadChat(chatId) {
-			fetch(`/set_chat_id?chat_id=${chatId}`)
-				loadChatHistory();
 		}
 
 
@@ -139,7 +142,8 @@
 
 			$("#chatHistoryModalLabel").text(`Chat History with ${username}`);
 			$("#messageFormeight").html("<p>Loading chat history...</p>"); // Show loading text
-			loadChat(chat_id)
+
+			loadChat(chatId)
 
 			$("#chatHistoryModal").modal("show"); // Show the modal
 		});
@@ -158,6 +162,14 @@
 				});
 			}
 		});
-	});
+
+		$(document).on("click", ".close", function() {
+			let chatId = 0
+			$.ajax({
+				url: `/set_chat_id?chat_id=${chatId}`,
+				type: "GET",
+			});
+		})
+	})
 	</script>
 </html>   
