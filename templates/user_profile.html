@@ -1,20 +1,98 @@
-<link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
-<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
-<script src="https://kit.fontawesome.com/cf3e2ae5a1.js" crossorigin="anonymous"></script>
-
 <!DOCTYPE html>
 <html>
-	<head>
-		<title>User Profile</title>
-		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-		<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
-		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-		<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css')}}"/>
-	</head>
+<head>
+    <title>User Profile</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css')}}"/>
+    <style>
+        #chartContainer {
+            width: 100%;
+            max-width: 300px;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid h-100">
+        <div class="row justify-content-center h-100">      
+            <div class="col-md-8 col-xl-6 chat">
+                <div class="card">
+                    <div class="card-header msg_head">
+                        <div class="d-flex bd-highlight">
+                            <div class="img_cont">
+                                <img src="https://i.ibb.co/fSNP7Rz/icons8-chatgpt-512.png" class="rounded-circle user_img">
+                            </div>
+                            <div class="user_info">
+                                <span>Profile</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h4>Welcome, {{ username }}</h4>
+                        <p>Total Chats: <span id="chatCount">Loading...</span></p>
+                        <div id="chartContainer">
+                            <canvas id="chatChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <body>
+    <script>
+        $(document).ready(function() {
+		$.ajax({
+			url: '/get_chat_count',
+			type: 'GET',
+			success: function(response) {
+				$('#chatCount').text(response.chat_count);
+			},
+			error: function() {
+				$('#chatCount').text('Error loading chat count');
+			}
+		});
 
-    </body>
+		$.ajax({
+			url: '/get_chat_dates',
+			type: 'GET',
+			success: function(response) {
+				// Reverse the order so that today is the last date
+				response.dates.reverse();
+				response.counts.reverse();
 
+				let ctx = document.getElementById('chatChart').getContext('2d');
+				new Chart(ctx, {
+					type: 'bar',
+					data: {
+						labels: response.dates,
+						datasets: [{
+							label: 'Chats Created',
+							data: response.counts,
+							backgroundColor: 'rgba(75, 192, 192, 0.6)',
+							borderColor: 'rgba(75, 192, 192, 1)',
+							borderWidth: 1
+						}]
+					},
+					options: {
+						responsive: true,
+						maintainAspectRatio: false,
+						scales: {
+							y: {
+								beginAtZero: true,
+								ticks: {
+									precision: 0  // Ensures integer values on Y-axis
+								}
+							}
+						}
+					}
+				});
+			}
+		});
+	});
+
+    </script>
+</body>
 </html>

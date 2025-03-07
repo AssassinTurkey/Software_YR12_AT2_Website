@@ -29,14 +29,14 @@
                 <div class="action_menu_content" id="popup">
                     <ul>
                         <div class="action_menu_admin" id="admin-window">
-                            <li><a href="{{ url_for('request_admin') }}"><i class="fa-solid fa-user"></i> Admin Panel</a></li>
+                            <li><a href="{{ url_for('request_admin') }}"><i class="fa-solid fa-code"></i> Admin Panel</a></li>
                         </div>
                         <div class="user-window", id="user-window">
-                            <li><a href="/user_profile"><i class="fa-solid fa-user"></i> Profile</a></li>
+                            <li><a href="{{ url_for('user_profile') }}"><i class="fa-solid fa-circle-user"></i> Profile</a></li>
                         </div>
-                        <li><a href="/login"><i class="fa-solid fa-user"></i> Log In</a></li>
-                        <li><a href="/signup"><i class="fa-solid fa-right-to-bracket"></i> Sign Up</a></li>
-                        <li><a href="/logout"><i class="fa-solid fa-ghost"></i> Log Out</a></li>
+                        <li><a href="{{ url_for('login') }}"><i class="fa-solid fa-user"></i> Log In</a></li>
+                        <li><a href="{{ url_for('signup') }}"><i class="fa-solid fa-right-to-bracket"></i> Sign Up</a></li>
+                        <li><a href="{{ url_for('logout') }}"><i class="fa-solid fa-ghost"></i> Log Out</a></li>
                     </ul>
                 </div>
             </div>

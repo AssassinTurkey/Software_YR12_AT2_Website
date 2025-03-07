@@ -5,7 +5,7 @@ from flask_limiter.util import get_remote_address
 from flask_cors import CORS
 from markupsafe import escape
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 import ollama
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -238,7 +238,6 @@ def admin():
 # Fetch chat history endpoint
 @app.route("/history", methods=["GET"])
 def history():
-    print('ran')
     return jsonify(load_chat_history())
 
 
@@ -364,6 +363,58 @@ def delete_chat(chat_id):
 @app.route("/user_profile")
 def user_profile():
     return render_template('user_profile.html')
+
+
+
+@app.route("/get_chat_count", methods=['GET'])
+def get_chat_count():
+    user_id = session.get('user_id')  # Ensure the user is logged in
+    if not user_id:
+        return jsonify({"chat_count": 0})
+
+    conn = sqlite3.connect('databases.db')
+    c = conn.cursor()
+    c.execute("SELECT MAX(chatNumber) FROM chat_history WHERE user_id = ?", (user_id,))
+    result = c.fetchone()
+    conn.close()
+
+    chat_count = result[0] if result and result[0] else 0
+    return jsonify({"chat_count": chat_count})
+    
+
+
+
+@app.route('/get_chat_dates')
+def get_chat_dates():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"dates": [], "counts": []})
+
+    conn = sqlite3.connect('databases.db')
+    cursor = conn.cursor()
+
+    date_counts = {}
+    for i in range(5, -1, -1):  # Ensure correct order
+        date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
+        date_counts[date] = 0
+
+    cursor.execute("""
+        SELECT DATE(chat_id) as chat_date, COUNT(*) 
+        FROM chat_history 
+        WHERE user_id = ? 
+        AND chat_id >= strftime('%s', date('now', '-5 days')) 
+        GROUP BY chat_date
+    """, (user_id,))
+
+    for row in cursor.fetchall():
+        chat_date, count = row
+        if chat_date in date_counts:
+            date_counts[chat_date] = count
+
+    conn.close()
+
+    # Send ordered data
+    return jsonify({"dates": list(date_counts.keys()), "counts": list(date_counts.values())})
 
 
 
