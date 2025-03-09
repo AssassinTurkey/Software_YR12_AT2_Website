@@ -9,11 +9,21 @@ body,html{
 .chat{
 	margin-top: auto;
 	margin-bottom: auto;
+	overflow-y: auto;
+	max-height: 500px;
 }
 .card{
 	height: 500px;
 	border-radius: 15px !important;
 	background-color: rgba(0,0,0,0.4) !important;
+}
+.card img {
+	width: 40%;
+	align-self: center;
+}
+.card p {
+	text-align: center;
+	color: white;
 }
 .contacts_body{
 	padding:  0.75rem 0 !important;
@@ -96,8 +106,8 @@ border-radius: 0 0 15px 15px !important;
 	background-color: rgba(0,0,0,0.3);
 }
 .user_img{
-	height: 70px;
-	width: 70px;
+	height: 70px !important;
+	width: 70px !important;
 	border:1.5px solid #f5f6fa;
 
 }
@@ -107,18 +117,17 @@ border-radius: 0 0 15px 15px !important;
 	border:1.5px solid #f5f6fa;
 
 }
-
 .user-window {
 	display: none;
 }
 .img_cont{
 	position: relative;
-	height: 70px;
-	width: 70px;
+	height: 70px !important;
+	width: 70px !important;
 }
-.img_cont_msg{
-	height: 40px;
-	width: 40px;
+.img_cont_msg, img{
+	height: 40px !important;
+	width: 40px !important;
 }
 .online_icon{
 	position: absolute;
@@ -149,16 +158,6 @@ border-radius: 0 0 15px 15px !important;
 .user_info a {
 	font-size: 10px;
 	color: rgba(255,255,255,0.6);
-}
-.video_cam{
-	margin-left: 50px;
-	margin-top: 5px;
-}
-.video_cam span{
-	color: white;
-	font-size: 20px;
-	cursor: pointer;
-	margin-right: 20px;
 }
 .msg_cotainer{
 	margin-top: auto;
@@ -384,8 +383,113 @@ border-radius: 0 0 15px 15px !important;
 .close {
 	color: #f8f9fa;
 }
-@media(max-width: 576px){
-	.contacts_card{
-	margin-bottom: 15px !important;
+.text-format {
+	text-align: center;
+	color: white;
 }
+.text-format h1 {
+	font-size: 1000%;
+}
+.text-format p {
+	font-size: 15px;
+}
+@media (max-width: 768px) {
+	.card {
+		height: 500px;
+		width: 90%;
+		margin: auto;
+	}
+	.sidebar {
+		width: 60%;
+		height: 30%;
+		position: fixed;
+		top: 0;
+		left: 20%;
+		background: rgba(0,0,0,0.7);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 10px;
+		gap: 5px;
+	}
+	#chat-list {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 5px;
+        width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+		margin-top: -4%;
+    }
+	#chat-placement {
+		size: 0;
+		margin-top: 5px !important; 
+    	overflow-x: auto;
+	}
+	.sidebar_button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        margin-top: 5px; /* Small gap instead of auto */
+    }
+	
+	.sidebar_button i, p {
+		margin-bottom: 6%; /* Adjust spacing if needed */
+	}
+	.user_info span {
+		font-size: 16px;
+	}
+	.msg_cotainer, .msg_cotainer_send {
+		max-width: 75%;
+		font-size: 14px;
+	}
+}
+@media (max-width: 576px) {
+	.contacts_card {
+		margin-bottom: 15px !important;
+	}
+	.card {
+		width: 100%;
+		margin: auto;
+	}
+	.sidebar {
+		width: 50%;
+		height: auto;
+		position: fixed;
+		top: 0;
+		left: 25%;
+		background: rgba(0,0,0,0.7);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 10px;
+	}
+	#chat-list {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 5px;
+		width: 100%;
+		overflow-x: auto;
+		white-space: nowrap;
+	}
+	.sidebar_button {
+		margin-top: auto;
+		align-self: center;
+	}
+	.send_btn, .attach_btn {
+		font-size: 14px;
+	}
+	.type_msg {
+		font-size: 14px;
+	}
+	.msg_cotainer, .msg_cotainer_send {
+		max-width: 90%;
+		font-size: 12px;
+	}
 }

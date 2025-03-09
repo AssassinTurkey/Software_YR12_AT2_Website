@@ -8,6 +8,8 @@ import uuid
 from datetime import datetime, timedelta
 import ollama
 from werkzeug.security import generate_password_hash, check_password_hash
+import pyotp
+import qrcode
 
 
 
@@ -37,8 +39,13 @@ def make_session_permanent():
 
 def set_session_values():
     session.clear()
-    session['Session'] = False
-    session['chat_id'] = None
+    session['Session'] = True
+    session['user_id'] = 1
+    session['username'] = "hello"
+    session['permission_level'] = 0
+    session['csrf_token'] = str(uuid.uuid4())
+    session['chat_id'] = None  # Reset chat ID
+    #session['pending_user'] = None
     session.modified = True  # Ensure Flask recognizes the changes
 
 
@@ -59,7 +66,8 @@ def init_db():
                 user_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT NOT NULL,
                 password TEXT NOT NULL,
-                permission_level INTEGER DEFAULT 0 NOT NULL
+                permission_level INTEGER DEFAULT 0 NOT NULL,
+                mfa_secret TEXT
                )
                 ''')
     
@@ -94,8 +102,23 @@ init_db()
 
 
 
+#Empty Log file
+f = open("error.txt", "w")
+f.write("")
+f.close()
+
+
+
+
 @app.route('/')
 def index():
+    session['Session'] = True
+    session['user_id'] = 1
+    session['username'] = "hello"
+    session['permission_level'] = 0
+    session['csrf_token'] = str(uuid.uuid4())
+    session['chat_id'] = None  # Reset chat ID
+    print(session)
     return render_template('chat.html')
 
 
@@ -128,19 +151,25 @@ def login():
 
                     if check_password_hash(user["password"], str(password)) == True:  # Use column names
                         session.clear()
+
                         session['user_id'] = user["user_id"]
-                        session['username'] = user["username"]
-                        session['permission_level'] = user["permission_level"]
                         session['csrf_token'] = str(uuid.uuid4())
                         session['Session'] = True
-                        session['chat_id'] = None  # Reset chat ID
+
+                        print(session['user_id'])
+
+                        if user["mfa_secret"] is None:
+                            return redirect(url_for('setup_mfa'))
+                        
+                         # Otherwise, this will just ask them to enter their code
+                        print(1)
+                        return redirect(url_for('verify_mfa', user=user))
 
 
                 conn.commit()
                 conn.close()
-                return redirect(url_for('index'))
              except:
-                 jsonify({"error": "User does not exist"}), 400
+                 return redirect(url_for('login'))
      return render_template('login.html')
 
 
@@ -153,15 +182,17 @@ def signup():
 
         #Gets username and password from the form
         username = escape(request.form.get('username'))
-        password = generate_password_hash(escape(request.form.get('password')))
+        password = escape(request.form.get('password'))
+        c_password = escape(request.form.get('c-password'))
         
         #Check if the username and password are empty
         if username == '' or password == '':
             return redirect(url_for('signup'))
         elif len(username) > 50 or len(password) > 50:
              return redirect(url_for('signup'))
+        elif password == c_password:
+            password = generate_password_hash(password)
         
-        else:
             #Connect to the database
             try:
                 conn = sqlite3.connect('databases.db')
@@ -182,28 +213,84 @@ def signup():
                     c.execute('''INSERT INTO users (username, password)
                                 VALUES (?, ?)
                             ''', (username, password))
-                    
-                    
-                    userInfo = c.execute('''
-                                        SELECT * from users where username = (?)
-                                        ''', [username]).fetchall()
-                    
-                    session.clear()
-                    session['user_id'] = userInfo[0][0]
-                    session['username'] = userInfo[0][1]
-                    session['permission_level'] = userInfo[0][3]
-                    session['csrf_token'] = str(uuid.uuid4())
-                    session['Session'] = True
-                    session['chat_id'] = None
 
                     conn.commit()
                     conn.close()
-                    return redirect(url_for('index'))
+                    return redirect(url_for('login'))
             except:
-                return jsonify({"error": "Database Connection Error"}), 500
+                log_error(500, "Couldn't Connect to Database")
+                return redirect(url_for('error', error=500, message="Couldn't Connect to Database"))
      else:
         return render_template('signup.html')
      
+
+
+
+@app.route('/setup_mfa', methods=['GET', 'POST'])
+def setup_mfa():
+    print(3)
+    print(session['user_id'])
+    if session.get('user_id') is None:
+        return redirect('/login')
+    user_id = session['user_id']
+    # This will just retrieve the current MFA secret key for the user
+
+    conn = sqlite3.connect('databases.db')
+    c = conn.cursor()
+    c.execute("SELECT mfa_secret FROM users WHERE user_id = ?", (user_id,))
+    secret = c.fetchone()[0]
+
+    # Creates a MFA secret key
+    if not secret:
+        secret = pyotp.random_base32()
+        c.execute("UPDATE users SET mfa_secret = ? WHERE user_id = ?", (secret, user_id))
+        conn.commit()
+    conn.close()
+    
+    # Generate QR Code -> So the user can setup MFA on the MS Authenticator App
+    totp = pyotp.TOTP(secret)
+    uri = totp.provisioning_uri(name="AI Chatbot Website", issuer_name="General Kenobi")
+    
+    qr = qrcode.make(uri)
+    qr_path = "static/qrcode.png"
+    qr.save(qr_path)
+    return render_template("setup_mfa.html", qr_path=qr_path)
+
+
+
+
+@app.route('/verify_mfa', methods=['GET', 'POST'])
+def verify_mfa():
+    user = request.args.get('user')
+    if 'user_id' not in session:
+        return redirect('/login')
+    user_id = session['user_id']
+    if request.method == 'POST':
+        # Retrieves the code from the text box
+        otp_code = request.form['otp'].strip()
+        conn = sqlite3.connect('databases.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT mfa_secret FROM users WHERE user_id = ?", (user_id,))
+        secret = cursor.fetchone()[0]
+        conn.close()
+        totp = pyotp.TOTP(secret)
+        print("Entered OTP:", otp_code)
+        print("Expected OTP:", totp.now())  # This prints the expected OTP
+        print(totp.verify(otp_code))
+
+        # Compares the input code to the database 
+        if totp.verify(otp_code):
+            #del session['pending_user']
+            session['user_id'] = user_id
+            session['username'] = user["username"]
+            session['permission_level'] = user["permission_level"]
+            #session['csrf_token'] = str(uuid.uuid4())
+            session['chat_id'] = None  # Reset chat ID
+
+            return redirect('/')
+        flash("Invalid 2FA code. Try again.", "error")
+    return render_template("verify_mfa.html")
+
 
 
 
@@ -217,12 +304,47 @@ def logout():
 
 
 
+@app.route('/reset_password', methods=['GET', 'POST'])
+def reset_password():
+    if request.method == 'POST':
+        username = escape(request.form.get('username'))
+        password = escape(request.form.get('password'))
+        c_password = request.form.get('c_password')
+
+        print(password, c_password)
+        if username == session.get('username') and password == c_password:
+            password = generate_password_hash(password)
+            
+            try:
+
+                conn= sqlite3.connect('databases.db')
+                c = conn.cursor()
+
+                c.execute('''
+                            UPDATE users SET password = ? WHERE username = ? 
+                        ''',(password, username))
+                
+                
+                conn.commit()
+                conn.close()
+
+                return redirect(url_for('index'))
+            except:
+                log_error(500, "Couldn't Connect to Database")
+                return redirect(url_for('error', error=500, message="Couldn't Connect to Database"))
+
+    return render_template('reset_password.html')
+
+
+
+
 @app.route('/request_admin', methods=['GET'])
 def request_admin():
     print(session['permission_level'])
     if session['permission_level'] == 1:
         return redirect(url_for('admin'))
     else:
+        log_error(401, "Not Admin User")
         return jsonify({'error': "Not Admin User"}), 401
     
 
@@ -250,6 +372,7 @@ def chat():
     user_input = data.get("message", "")
 
     if not user_input:
+        log_error(400, "Message cannot be empty")
         return jsonify({"error": "Message cannot be empty"}), 400
 
     model = "llama3.1"
@@ -280,6 +403,7 @@ def chat():
 @app.route('/new_chat', methods=['POST'])
 def new_chat():
     if 'user_id' not in session:
+        log_error(401, "User not logged in")
         return jsonify({"error": "User not logged in"}), 401
 
     new_chat_id, new_chat_title = create_new_chat(session['user_id'])
@@ -293,6 +417,7 @@ def new_chat():
 def get_chats():
     #Fetches a list of past chats for the current user.
     if 'user_id' not in session:
+        log_error(401, "User not logged in")
         return jsonify({"error": "User not logged in"}), 401
 
     conn = sqlite3.connect('databases.db')
@@ -320,6 +445,7 @@ def admin_chats():
 def set_chat_id():
     chat_id = request.args.get("chat_id")
     if not chat_id:
+        log_error(400, "Chat ID is required")
         return jsonify({"error": "Chat ID is required"}), 400
     
     session['chat_id'] = chat_id
@@ -341,7 +467,8 @@ def check_user_data():
             return jsonify({"message": "sdfhbwefobqbfinewvvweeve018y5249tggw", "in_session": "False"})
         
     except:
-        return jsonify({"error": "Permission level not found"}), 400
+        log_error(400, "Permission level not found")
+        return redirect(url_for('error', error=400, message="Permission level not found"))
 
 
 
@@ -362,7 +489,12 @@ def delete_chat(chat_id):
 
 @app.route("/user_profile")
 def user_profile():
-    return render_template('user_profile.html')
+    if session.get('Session') == True:
+        return render_template('user_profile.html', username=session.get('username'))
+    else: 
+        log_error(401, "Invalid User or Not Logged In")
+        return redirect(url_for('error', error=401, message="Invalid User or Not Logged In"))
+
 
 
 
@@ -391,30 +523,42 @@ def get_chat_dates():
         return jsonify({"dates": [], "counts": []})
 
     conn = sqlite3.connect('databases.db')
-    cursor = conn.cursor()
+    c = conn.cursor()
 
     date_counts = {}
-    for i in range(5, -1, -1):  # Ensure correct order
+    for i in range(5, -1, -1):
         date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
         date_counts[date] = 0
 
-    cursor.execute("""
-        SELECT DATE(chat_id) as chat_date, COUNT(*) 
-        FROM chat_history 
-        WHERE user_id = ? 
-        AND chat_id >= strftime('%s', date('now', '-5 days')) 
+    # Query to count unique chats per day for the user
+    c.execute("""
+        SELECT DATE(cd.messageTime) AS chat_date, COUNT(DISTINCT ch.chat_id) 
+        FROM chat_history ch
+        JOIN chat_data cd ON ch.chat_id = cd.chat_id
+        WHERE ch.user_id = ? 
+        AND cd.messageTime >= datetime('now', '-6 days')
         GROUP BY chat_date
+        ORDER BY chat_date ASC
     """, (user_id,))
 
-    for row in cursor.fetchall():
+    for row in c.fetchall():
         chat_date, count = row
         if chat_date in date_counts:
             date_counts[chat_date] = count
 
     conn.close()
 
-    # Send ordered data
     return jsonify({"dates": list(date_counts.keys()), "counts": list(date_counts.values())})
+
+
+
+
+@app.route('/error')
+def error():
+    error_code = request.args.get('error', 'Unknown Error')  # Get from query params
+    message = request.args.get('message', 'Something went wrong')
+    return render_template('error.html', error=error_code, message=message)
+
 
 
 
@@ -509,6 +653,24 @@ def admin_all_chats():
     # Parse data into JSON format
     return [{"chat_id": row[0], "username": row[1], "chat_title": row[2]} for row in chats]
 
+
+
+
+def log_error(error, message):
+    f = open("error.txt", "a")
+    f.write(f"{datetime.time} Error: {error} {message}")
+    f.close()
+
+
+
+def add_data_database(fetch_type, columns, table):
+    conn = sqlite3.connect('databases.db')
+    c = conn.cursor()
+
+    c.execute(f"{fetch_type} {columns} FROM {table}")
+
+    conn.commit()
+    conn.close()
 
 
 
