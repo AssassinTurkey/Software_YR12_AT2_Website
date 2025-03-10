@@ -40,12 +40,8 @@ def make_session_permanent():
 def set_session_values():
     session.clear()
     session['Session'] = True
-    session['user_id'] = 1
-    session['username'] = "hello"
-    session['permission_level'] = 0
-    session['csrf_token'] = str(uuid.uuid4())
     session['chat_id'] = None  # Reset chat ID
-    #session['pending_user'] = None
+    session['pending_user'] = None
     session.modified = True  # Ensure Flask recognizes the changes
 
 
@@ -112,12 +108,12 @@ f.close()
 
 @app.route('/')
 def index():
-    session['Session'] = True
+    '''session['Session'] = True
     session['user_id'] = 1
     session['username'] = "hello"
     session['permission_level'] = 0
     session['csrf_token'] = str(uuid.uuid4())
-    session['chat_id'] = None  # Reset chat ID
+    session['chat_id'] = None  # Reset chat ID'''
     print(session)
     return render_template('chat.html')
 
@@ -156,13 +152,12 @@ def login():
                         session['csrf_token'] = str(uuid.uuid4())
                         session['Session'] = True
 
-                        print(session['user_id'])
+                        #print(session['user_id'])
 
                         if user["mfa_secret"] is None:
                             return redirect(url_for('setup_mfa'))
                         
                          # Otherwise, this will just ask them to enter their code
-                        print(1)
                         return redirect(url_for('verify_mfa', user=user))
 
 
@@ -228,8 +223,6 @@ def signup():
 
 @app.route('/setup_mfa', methods=['GET', 'POST'])
 def setup_mfa():
-    print(3)
-    print(session['user_id'])
     if session.get('user_id') is None:
         return redirect('/login')
     user_id = session['user_id']
@@ -268,23 +261,32 @@ def verify_mfa():
     if request.method == 'POST':
         # Retrieves the code from the text box
         otp_code = request.form['otp'].strip()
+
+
         conn = sqlite3.connect('databases.db')
         cursor = conn.cursor()
+
         cursor.execute("SELECT mfa_secret FROM users WHERE user_id = ?", (user_id,))
+
         secret = cursor.fetchone()[0]
         conn.close()
+
+
         totp = pyotp.TOTP(secret)
+
+        '''if secret == pyotp.TOTP(secret).now():
+            print('True')
         print("Entered OTP:", otp_code)
         print("Expected OTP:", totp.now())  # This prints the expected OTP
-        print(totp.verify(otp_code))
+        print(totp.verify(otp_code))'''
 
         # Compares the input code to the database 
-        if totp.verify(otp_code):
+        if totp.verify(otp_code, valid_window=1):
             #del session['pending_user']
             session['user_id'] = user_id
-            session['username'] = user["username"]
-            session['permission_level'] = user["permission_level"]
-            #session['csrf_token'] = str(uuid.uuid4())
+            session['username'] = user[1]
+            session['permission_level'] = user[3]
+            session['csrf_token'] = str(uuid.uuid4())
             session['chat_id'] = None  # Reset chat ID
 
             return redirect('/')
