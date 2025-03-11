@@ -47,7 +47,7 @@ def set_session_values():
 
 
 
-limiter = Limiter(get_remote_address, app=app, default_limits=["200 per minute"])
+limiter = Limiter(get_remote_address, app=app, default_limits=["50 per minute"])
 
 
 
@@ -108,20 +108,13 @@ f.close()
 
 @app.route('/')
 def index():
-    '''session['Session'] = True
-    session['user_id'] = 1
-    session['username'] = "hello"
-    session['permission_level'] = 0
-    session['csrf_token'] = str(uuid.uuid4())
-    session['chat_id'] = None  # Reset chat ID'''
-    print(session)
     return render_template('chat.html')
 
 
 
 
 @app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("200 per minute")
+@limiter.limit("5 per minute")
 def login():
      if request.method == 'POST':
          
@@ -171,7 +164,7 @@ def login():
 
 
 @app.route('/signup', methods=['GET', 'POST'])
-@limiter.limit("200 per minute")
+@limiter.limit("5 per minute")
 def signup():
      if request.method == 'POST':
 
@@ -211,6 +204,8 @@ def signup():
 
                     conn.commit()
                     conn.close()
+
+                    log_error(200, f"New Account Created: {username}")
                     return redirect(url_for('login'))
             except:
                 log_error(500, "Couldn't Connect to Database")
@@ -253,6 +248,7 @@ def setup_mfa():
 
 
 @app.route('/verify_mfa', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def verify_mfa():
     user = request.args.get('user')
     if 'user_id' not in session:
@@ -274,11 +270,6 @@ def verify_mfa():
 
         totp = pyotp.TOTP(secret)
 
-        '''if secret == pyotp.TOTP(secret).now():
-            print('True')
-        print("Entered OTP:", otp_code)
-        print("Expected OTP:", totp.now())  # This prints the expected OTP
-        print(totp.verify(otp_code))'''
 
         # Compares the input code to the database 
         if totp.verify(otp_code, valid_window=1):
@@ -288,6 +279,8 @@ def verify_mfa():
             session['permission_level'] = user[3]
             session['csrf_token'] = str(uuid.uuid4())
             session['chat_id'] = None  # Reset chat ID
+
+            log_error(200, f"{session['username']} Logged In")
 
             return redirect('/')
         flash("Invalid 2FA code. Try again.", "error")
@@ -330,6 +323,8 @@ def reset_password():
                 conn.commit()
                 conn.close()
 
+                log_error(200, f"{username} Reset Password")
+
                 return redirect(url_for('index'))
             except:
                 log_error(500, "Couldn't Connect to Database")
@@ -354,6 +349,7 @@ def request_admin():
 
 @app.route('/admin')
 def admin():
+    log_error(200, "Admin Page Opened")
     return render_template('admin.html')
 
 
@@ -484,6 +480,8 @@ def delete_chat(chat_id):
 
     conn.commit()
     conn.close()
+    
+    log_error(200, "Admin Deleted Chat")
     return jsonify({"success": True, "message": "Chat deleted successfully!"})
 
 
@@ -582,6 +580,7 @@ def create_new_chat(user_id, title='New Chat'):
     # Reset session chat history and store the new chat ID
     session['chat_id'] = chat_id
 
+    log_error(200, "User created chat")
     return chat_id, title
 
 
@@ -663,16 +662,6 @@ def log_error(error, message):
     f.write(f"{datetime.time} Error: {error} {message}")
     f.close()
 
-
-
-def add_data_database(fetch_type, columns, table):
-    conn = sqlite3.connect('databases.db')
-    c = conn.cursor()
-
-    c.execute(f"{fetch_type} {columns} FROM {table}")
-
-    conn.commit()
-    conn.close()
 
 
 
