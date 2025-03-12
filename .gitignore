@@ -3,3 +3,4 @@ env/
 __pycache__/
 XSS_Demo/
 error.txt
+TodoListApp/

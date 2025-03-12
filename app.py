@@ -90,12 +90,36 @@ def init_db():
     conn.commit()
     conn.close()
 
+def insert_admin_user():
+    conn = sqlite3.connect('databases.db')
+    c = conn.cursor()
+    
+    # Check if admin user already exists
+    c.execute("SELECT * FROM users WHERE username = 'admin'")
+    if c.fetchone() is None:
+        # Insert admin user with a default password and permission level 1
+        admin_password = generate_password_hash('admin')
+        c.execute("INSERT INTO users (username, password, permission_level) VALUES (?, ?, ?)", ('admin', admin_password, 1))
+        conn.commit()
+    
+    conn.close()
 
+def insert_mfa_secret_for_user(username):
+    conn = sqlite3.connect('databases.db')
+    c = conn.cursor()
+
+    c.execute("SELECT mfa_secret FROM users WHERE username = ?", (username,))
+    result = c.fetchone()
+    if result:
+        existing_mfa_secret = result[0]
+    
+    c.execute("UPDATE users SET mfa_secret = ? WHERE username = ?", (result[0], 'admin'))
+    
+    conn.commit()
+    conn.close()
 
 
 init_db()
-
-
 
 
 #Empty Log file
@@ -108,6 +132,8 @@ f.close()
 
 @app.route('/')
 def index():
+    if 'user_id' not in session:
+        session.clear()
     return render_template('chat.html')
 
 
@@ -340,7 +366,7 @@ def reset_password():
 @app.route('/request_admin', methods=['GET'])
 def request_admin():
     print(session['permission_level'])
-    if session['permission_level'] == 1:
+    if int(session['permission_level']) == 1:
         return redirect(url_for('admin'))
     else:
         log_error(401, "Not Admin User")
@@ -459,6 +485,7 @@ def check_user_data():
     perm_level = session.get('permission_level')
     in_session = session.get('Session')
     try:
+        perm_level = int(perm_level)
         if perm_level == 1:
             return jsonify({"message": "True", "in_session": "True"})
         elif in_session == True:

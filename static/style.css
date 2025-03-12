@@ -23,10 +23,6 @@ body,html{
 	border-radius: 15px !important;
 	background-color: rgba(0,0,0,0.4) !important;
 }
-.card img {
-	width: 40%;
-	align-self: center;
-}
 .card p {
 	text-align: center;
 	color: white;
@@ -45,6 +41,12 @@ body,html{
 }
 .card-body {
 	color: white;
+}
+.card-body > img {
+	display: block;
+    margin: 0 auto;  /* Centers horizontally */
+    width: 200px !important;
+    height: 200px !important;
 }
 .card-footer{
 border-radius: 0 0 15px 15px !important;
@@ -118,8 +120,8 @@ border-radius: 0 0 15px 15px !important;
 
 }
 .user_img_msg{
-	height: 40px;
-	width: 40px;
+	height: 40px !important;
+	width: 40px !important;
 	border:1.5px solid #f5f6fa;
 
 }

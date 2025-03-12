@@ -16,18 +16,29 @@
     </head>
 
     <body>
-        <div class="row justify-content-center h-100">		
-            <div class="col-md-8 col-xl-6 chat">
-                <div class="card">
-                    <div class="user_info">
-                        <span>Scan QR Code</span>
-                        <br>
-                        <a href="{{ url_for('login') }}">Log In</a>
-                    </div>
-                    <img src="{{ qr_path }}" alt="QR Code">
-                    <p>Scan with Microsoft Authenticator and enter the 6-digit code at login.</p>
-                    
-                </div> 
+        <div class="container-fluid h-100">
+            <div class="row justify-content-center h-100">		
+                <div class="col-md-8 col-xl-6 chat">
+                    <div class="card">
+                        <div class="card-header msg_head">
+                            <div class="d-flex bd-highlight">
+                                <div class="img_cont">
+                                    <img src="https://i.ibb.co/fSNP7Rz/icons8-chatgpt-512.png" class="rounded-circle user_img">
+                                    <span class="online_icon"></span>
+                                </div>
+                                <div class="user_info">
+                                    <span>Scan QR Code</span>
+                                    <br>
+                                    <a href="{{ url_for('login') }}">Log In</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body msg_card_body">	    
+                            <img src="{{ qr_path }}" alt="QR Code">
+                            <p>Scan with Microsoft Authenticator and enter the 6-digit code at login.</p>
+                        </div>
+                    </div> 
+                </div>
             </div>
         </div>
     </body>
