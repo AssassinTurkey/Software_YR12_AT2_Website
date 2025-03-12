@@ -39,7 +39,7 @@ def make_session_permanent():
 
 def set_session_values():
     session.clear()
-    session['Session'] = True
+    session['Session'] = False
     session['chat_id'] = None  # Reset chat ID
     session['pending_user'] = None
     session.modified = True  # Ensure Flask recognizes the changes
@@ -141,7 +141,7 @@ def login():
                     if check_password_hash(user["password"], str(password)) == True:  # Use column names
                         session.clear()
 
-                        session['user_id'] = user["user_id"]
+                        session['pending_user'] = user["user_id"]
                         session['csrf_token'] = str(uuid.uuid4())
                         session['Session'] = True
 
@@ -151,7 +151,7 @@ def login():
                             return redirect(url_for('setup_mfa'))
                         
                          # Otherwise, this will just ask them to enter their code
-                        return redirect(url_for('verify_mfa', user=user))
+                        return redirect(url_for('verify_mfa', username=user['username'], perm_lvl=user['permission_level']))
 
 
                 conn.commit()
@@ -218,9 +218,9 @@ def signup():
 
 @app.route('/setup_mfa', methods=['GET', 'POST'])
 def setup_mfa():
-    if session.get('user_id') is None:
+    if session.get('pending_user') is None:
         return redirect('/login')
-    user_id = session['user_id']
+    user_id = session['pending_user']
     # This will just retrieve the current MFA secret key for the user
 
     conn = sqlite3.connect('databases.db')
@@ -250,10 +250,13 @@ def setup_mfa():
 @app.route('/verify_mfa', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")
 def verify_mfa():
-    user = request.args.get('user')
-    if 'user_id' not in session:
+    user = {
+        "username": request.args.get("username"),
+        "permission_level": request.args.get("perm_lvl")
+    }
+    if 'pending_user' not in session:
         return redirect('/login')
-    user_id = session['user_id']
+    user_id = session['pending_user']
     if request.method == 'POST':
         # Retrieves the code from the text box
         otp_code = request.form['otp'].strip()
@@ -275,8 +278,8 @@ def verify_mfa():
         if totp.verify(otp_code, valid_window=1):
             #del session['pending_user']
             session['user_id'] = user_id
-            session['username'] = user[1]
-            session['permission_level'] = user[3]
+            session['username'] = user['username']
+            session['permission_level'] = user['permission_level']
             session['csrf_token'] = str(uuid.uuid4())
             session['chat_id'] = None  # Reset chat ID
 
@@ -306,7 +309,6 @@ def reset_password():
         password = escape(request.form.get('password'))
         c_password = request.form.get('c_password')
 
-        print(password, c_password)
         if username == session.get('username') and password == c_password:
             password = generate_password_hash(password)
             
