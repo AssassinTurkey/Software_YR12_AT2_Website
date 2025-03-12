@@ -688,7 +688,7 @@ def admin_all_chats():
 
 def log_error(error, message):
     f = open("error.txt", "a")
-    f.write(f"{datetime.time} Error: {error} {message}")
+    f.write(f"{datetime.now()} Error: {error} {message}")
     f.close()
 
 

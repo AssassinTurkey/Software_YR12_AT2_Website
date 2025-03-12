@@ -401,62 +401,6 @@ border-radius: 0 0 15px 15px !important;
 .text-format p {
 	font-size: 15px;
 }
-/*@media (max-width: 768px) {
-	.card {
-		height: 500px;
-		width: 90%;
-		margin: auto;
-	}
-	.sidebar {
-		width: 60%;
-		height: 30%;
-		position: fixed;
-		top: 0;
-		left: 20%;
-		background: rgba(0,0,0,0.7);
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		padding: 10px;
-		gap: 5px;
-	}
-	#chat-list {
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		gap: 5px;
-		width: 100%;
-		overflow-x: auto;
-		white-space: nowrap;
-	}
-	#chat-placement {
-		size: 0;
-		margin-top: 5px !important; 
-    	overflow-x: auto;
-	}
-	.sidebar_button {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        padding: 10px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-        margin-top: 5px; 
-    }
-	
-	.sidebar_button i, p {
-		margin-bottom: 6%; 
-	}
-	.user_info span {
-		font-size: 16px;
-	}
-	.msg_cotainer, .msg_cotainer_send {
-		max-width: 75%;
-		font-size: 14px;
-	}
-}
-*/
 @media (max-width: 768px) {
 	.main {
 		display: block;
