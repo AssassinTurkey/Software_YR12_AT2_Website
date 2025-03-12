@@ -1,0 +1,12 @@
+sqlite3
+flask
+flask_limiter
+flask_cors
+markupsafe
+uuid
+datetime
+ollama
+werkzeug
+pyotp
+qrcode
+pillow

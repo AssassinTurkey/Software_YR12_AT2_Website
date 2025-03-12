@@ -1,11 +1,17 @@
 body,html{
-	height: 100%;
+	height: 100vh;
+	padding: 0;
 	margin: 0;
 	background: rgb(44, 47, 59);
     background: -webkit-linear-gradient(to right, rgb(40, 59, 34), rgb(54, 60, 70), rgb(32, 32, 43));
 	background: linear-gradient(to right, rgb(38, 51, 61), rgb(50, 55, 65), rgb(33, 33, 78));
 }
-
+.main {
+	display: block;
+	width: 100%;
+	height: auto;
+	float: left;
+}
 .chat{
 	margin-top: auto;
 	margin-bottom: auto;
@@ -393,7 +399,7 @@ border-radius: 0 0 15px 15px !important;
 .text-format p {
 	font-size: 15px;
 }
-@media (max-width: 768px) {
+/*@media (max-width: 768px) {
 	.card {
 		height: 500px;
 		width: 90%;
@@ -435,11 +441,11 @@ border-radius: 0 0 15px 15px !important;
         padding: 10px;
         background: rgba(255, 255, 255, 0.1);
         border-radius: 10px;
-        margin-top: 5px; /* Small gap instead of auto */
+        margin-top: 5px; 
     }
 	
 	.sidebar_button i, p {
-		margin-bottom: 6%; /* Adjust spacing if needed */
+		margin-bottom: 6%; 
 	}
 	.user_info span {
 		font-size: 16px;
@@ -449,7 +455,17 @@ border-radius: 0 0 15px 15px !important;
 		font-size: 14px;
 	}
 }
-@media (max-width: 576px) {
+*/
+@media (max-width: 768px) {
+	.main {
+		display: block;
+		width: 100%;
+		height: auto;
+		float: left;
+	}
+	.container-fluid {
+		margin-top: 75px !important;
+	}
 	.contacts_card {
 		margin-bottom: 15px !important;
 	}
@@ -460,14 +476,15 @@ border-radius: 0 0 15px 15px !important;
 	.sidebar {
 		width: 50%;
 		height: auto;
-		position: fixed;
+		/*position: fixed;*/
 		top: 0;
 		left: 25%;
 		background: rgba(0,0,0,0.7);
-		display: flex;
+		/*display: float;*/
 		flex-direction: column;
-		align-items: center;
+		align-items: center;	
 		padding: 10px;
+		margin-bottom: 300px;
 	}
 	#chat-list {
 		display: flex;
